@@ -1,0 +1,29 @@
+{
+    "delayBeforePopup": "2000",
+    "autoPlayScratch": "true",
+    "autoPlayScratchDelay": "40000",
+    "redirectURL": "https://brand-games.com/affnet/click/10/9?aff_sub={clickid}&affiliate_id={affiliate_id}",
+    "firework": "false",
+    "lang": "eng",
+
+    "ua": [
+        ["В ТЕБЕ 2 СПРОБИ!", "В ТЕБЕ 1 СПРОБА!", "ПЕРЕМОГА!"],
+        ["<b class='textCloudInner__first'>ЗАБИРАЙ СВОЇ <br> БОНУСИ В <br> ОНЛАЙН-КАЗИНО!</b>", "<b>ВІДКРИВАЙ <br>БОНУС!<b>", "<b>СПРОБУЙ<br> ЩЕ!</b>"],
+        ["Грати", "Відкрити", "Забрати"],
+        {
+            "popupTitle": "Вітаємо!",
+            "popupInfo": "Ти виграв Welcome Pack",
+            "popupWinText": "100 000₴ + 500FS!"
+        }
+    ],
+    "eng": [
+        ["You have 2 attempts", "You have 1 attempt", "WIN"],
+        ["<b class='textCloudInner__first'>Reveal your <br> bonus!", "<b>Open <br>Bonus!<b>", "<b>Try again</b>"],
+        ["Play", "Open up", "Claim Here"],
+        {
+            "popupTitle": "Сongratulations!",
+            "popupInfo": "You won 100 Free Spins",
+            "popupWinText": "Just make a deposit"
+        }
+    ]
+}

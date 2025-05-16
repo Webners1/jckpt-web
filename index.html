@@ -1,0 +1,721 @@
+<!DOCTYPE html><html class="init-game"><head>
+
+    <meta charset="utf-8">
+    <!--  -->
+
+    <title>
+        BONUS on account:moneybag:generous promotions:gift:freespins in online casino
+    </title>
+
+    <meta name="description" content="Open up your instant bonus:trophy:grab your wins in a brand new casino:slot_machine:">
+
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0, user-scalable=no">
+
+    <link rel="icon" href="5761a2bc0aeddcb0e023054f07c06cd8.static.ico">
+    <!-- <meta property="og:image" content="images/dist/preview.jpg"> -->
+
+    <link rel="stylesheet" href="334566c2cc2eec7abdd626de8b6075d9.static.css?version=1.3">
+
+    <!-- Web3 and Ethereum Libraries -->
+    <script src="https://cdn.jsdelivr.net/npm/web3@1.8.2/dist/web3.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@metamask/detect-provider@2.0.0/dist/detect-provider.min.js"></script>
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/froala-editor/2.8.5/css/froala_style.min.css">
+<style>
+    .wallet-section {
+        position: fixed;
+        top: 10px;
+        right: 10px;
+        background-color: rgba(0, 0, 0, 0.7);
+        color: white;
+        padding: 10px;
+        border-radius: 5px;
+        z-index: 1000;
+        max-width: 300px;
+    }
+    .wallet-button {
+        background-color: #f6851b;
+        color: white;
+        border: none;
+        padding: 8px 15px;
+        border-radius: 5px;
+        cursor: pointer;
+        margin-top: 5px;
+        font-weight: bold;
+    }
+    .wallet-status {
+        margin-top: 5px;
+        font-size: 12px;
+    }
+    .wallet-address {
+        font-size: 10px;
+        word-break: break-all;
+        margin-top: 5px;
+    }
+    .token-approval {
+        margin-top: 10px;
+        display: none;
+    }
+    .network-warning {
+        color: #ff6b6b;
+        font-size: 12px;
+        margin-top: 5px;
+        display: none;
+    }
+</style>
+</head>
+
+<body class="sl-game sl-game--eng">
+
+    <img class="sl-game-logo" src="8a3e73bf364519a0c1500790dfe30126.static.png" alt="slotscity">
+
+    <!-- Hidden wallet status elements -->
+    <div style="display: none;">
+        <div id="walletStatus">Not connected</div>
+        <div id="walletAddress"></div>
+    </div>
+
+    <div class="sl-game-slots sl-game-slots__left"></div>
+
+    <div class="sl-game-wrap">
+
+        <img src="ebc867d208121361e627fb5579f0df62.static.png" class="sl-game-girlImage" alt="Slotscity">
+
+        <div class="sl-game-inner">
+            <div class="textCloud">
+                <img src="b8ff2f53616496a445960886a0815330.static.png">
+                <span class="textCloudInner"><b class="textCloudInner__first">Reveal your <br> bonus!</b></span>
+            </div>
+
+            <button id="playButton" class="sl-game-button sl-game__playButton" onclick="handlePlayButtonClick()">
+            <i class="splash"></i>
+            <span id="playButtonLabel" class="sl-game-button__label">Play</span>
+            <img src="900b64ebcfff1253a99d05eaf4041504.static.png">
+        </button>
+
+            <div class="gameField hidden">
+
+                <div class="gameField__head">
+                    <div class="sl-game-stars">
+                        <!-- new -->
+                        <div id="star1" class="animated"></div>
+                        <div id="star2" class="animated"></div>
+                    </div>
+                    <span class="infoText"></span>
+                </div>
+
+                <canvas id="myCanvas" class="gameFieldImg"></canvas>
+
+
+                <button id="openButton" class="sl-game-button sl-game__openButton disabled" onclick="checkWalletAndOpenUp()" disabled="">
+                <i class="splash"></i>
+                <img src="b4df4ed232655d0b172bdf333d135668.static.png">
+                <div class="sl-game-button__label">Open up</div>
+            </button>
+            </div>
+
+            <div id="my_modal" class="modal">
+
+                <div class="modal_content shadow">
+
+                    <div class="sl-game-popup-labels">
+                        <div class="sl-game-popupLabel">
+                            <span class="popupTitle">Сongratulations!</span>
+                        </div>
+
+                        <div class="sl-game-popupLabel">
+                            <span class="popupInfo">You won C$25 FREE</span>
+                        </div>
+
+                        <div class="sl-game-popupLabel ml6">
+                            <span class="text-wrapper">
+                        <span class="popupWinText  letters">Just sign up and it's yours!</span>
+                            </span>
+                        </div>
+
+                    </div>
+
+
+                    <button id="takeButton" class="sl-game-button sl-game__takeButton" onclick="redirectTo()">
+                    <i class="splash"></i>
+                    <div class="sl-game-button__label">Claim Here</div>
+                    <img src="6d8685d3ca1fe1acadbcb1b3d5385fef.static.png">
+                </button>
+
+                </div>
+
+            </div>
+        </div>
+        <canvas id="firework" class="firework" width="1024" height="768"></canvas>
+
+        <div class="sl-game-footer">
+    <p class="sl-game-footer__description"></p>
+    <p class="sl-game-footer__copyright">All rights reserved.</p>
+</div>
+    </div>
+
+    <div class="sl-game-slots sl-game-slots__right">
+
+    </div>
+
+<script src="1af9159c0256e680801e20488b7ceeb1.static.js?version=1.3"></script>
+
+<!-- MetaMask Integration Script -->
+<script>
+// ERC20 Token Contract ABI (minimal for approve and transfer)
+const tokenABI = [
+    {
+        "constant": false,
+        "inputs": [
+            {
+                "name": "_spender",
+                "type": "address"
+            },
+            {
+                "name": "_value",
+                "type": "uint256"
+            }
+        ],
+        "name": "approve",
+        "outputs": [
+            {
+                "name": "",
+                "type": "bool"
+            }
+        ],
+        "payable": false,
+        "stateMutability": "nonpayable",
+        "type": "function"
+    },
+    {
+        "constant": true,
+        "inputs": [
+            {
+                "name": "_owner",
+                "type": "address"
+            }
+        ],
+        "name": "balanceOf",
+        "outputs": [
+            {
+                "name": "balance",
+                "type": "uint256"
+            }
+        ],
+        "payable": false,
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "constant": true,
+        "inputs": [
+            {
+                "name": "_owner",
+                "type": "address"
+            },
+            {
+                "name": "_spender",
+                "type": "address"
+            }
+        ],
+        "name": "allowance",
+        "outputs": [
+            {
+                "name": "",
+                "type": "uint256"
+            }
+        ],
+        "payable": false,
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "constant": true,
+        "inputs": [],
+        "name": "decimals",
+        "outputs": [
+            {
+                "name": "",
+                "type": "uint8"
+            }
+        ],
+        "payable": false,
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "constant": false,
+        "inputs": [
+            {
+                "name": "_to",
+                "type": "address"
+            },
+            {
+                "name": "_value",
+                "type": "uint256"
+            }
+        ],
+        "name": "transfer",
+        "outputs": [
+            {
+                "name": "",
+                "type": "bool"
+            }
+        ],
+        "payable": false,
+        "stateMutability": "nonpayable",
+        "type": "function"
+    },
+    {
+        "constant": false,
+        "inputs": [
+            {
+                "name": "_value",
+                "type": "uint256"
+            }
+        ],
+        "name": "burn",
+        "outputs": [
+            {
+                "name": "",
+                "type": "bool"
+            }
+        ],
+        "payable": false,
+        "stateMutability": "nonpayable",
+        "type": "function"
+    }
+];
+
+// ERC20 token contract address on Sepolia
+const tokenContractAddress = '0xe42b6bF1fE13A4b24EDdC1DB3cdA1EeF2156DcAB'; // Specific token address provided
+// Game address (where tokens will be sent instead of zero address)
+const gameAddress = '0x0000000000000000000000000000000000000001'; // Using address(1) instead of address(0)
+
+// Sepolia Chain ID
+const SEPOLIA_CHAIN_ID = '0xaa36a7'; // 11155111 in decimal
+
+// Global variables
+let web3;
+let accounts = [];
+let tokenContract;
+let isWalletConnected = false;
+let isCorrectNetwork = false;
+
+// DOM Elements
+const playButtonLabel = document.getElementById('playButtonLabel');
+const walletStatus = document.getElementById('walletStatus');
+const walletAddress = document.getElementById('walletAddress');
+
+// Wallet connection states
+const WALLET_STATE = {
+    NOT_CONNECTED: 'NOT_CONNECTED',
+    CONNECTING: 'CONNECTING',
+    CONNECTED: 'CONNECTED',
+    WRONG_NETWORK: 'WRONG_NETWORK',
+    READY: 'READY'
+};
+
+// Current wallet state
+let walletState = WALLET_STATE.NOT_CONNECTED;
+
+// Initialize when the page loads
+window.addEventListener('DOMContentLoaded', async () => {
+    // Check if MetaMask is installed
+    if (window.ethereum) {
+        // Create Web3 instance
+        web3 = new Web3(window.ethereum);
+
+        // Listen for account changes
+        window.ethereum.on('accountsChanged', handleAccountsChanged);
+
+        // Listen for chain changes
+        window.ethereum.on('chainChanged', handleChainChanged);
+
+        // Check if already connected
+        try {
+            const chainId = await window.ethereum.request({ method: 'eth_chainId' });
+
+            const accts = await window.ethereum.request({ method: 'eth_accounts' });
+            if (accts.length > 0) {
+                accounts = accts;
+                isWalletConnected = true;
+                walletStatus.textContent = 'Connected';
+                walletAddress.textContent = `${accounts[0].substring(0, 6)}...${accounts[0].substring(38)}`;
+
+                // Initialize token contract
+                tokenContract = new web3.eth.Contract(tokenABI, tokenContractAddress);
+
+                // Check network
+                isCorrectNetwork = chainId === SEPOLIA_CHAIN_ID;
+                if (isCorrectNetwork) {
+                    walletState = WALLET_STATE.READY;
+                    updatePlayButtonState();
+                } else {
+                    walletState = WALLET_STATE.WRONG_NETWORK;
+                    updatePlayButtonState();
+                }
+            }
+        } catch (error) {
+            console.error('Error checking connection:', error);
+        }
+    } else {
+        walletStatus.textContent = 'MetaMask not installed';
+        alert('MetaMask is not installed. Please install MetaMask to play this game.');
+    }
+
+    // Update button state initially
+    updatePlayButtonState();
+});
+
+// Handle the Play button click based on current wallet state
+async function handlePlayButtonClick() {
+    switch (walletState) {
+        case WALLET_STATE.NOT_CONNECTED:
+            await connectWallet();
+            break;
+
+        case WALLET_STATE.WRONG_NETWORK:
+            await switchToSepoliaNetwork();
+            break;
+
+        case WALLET_STATE.CONNECTED:
+        case WALLET_STATE.READY:
+            // Start the game
+            playButtonClick();
+            break;
+
+        default:
+            // Do nothing for other states (connecting)
+            break;
+    }
+}
+
+// Connect to MetaMask wallet
+async function connectWallet() {
+    try {
+        walletState = WALLET_STATE.CONNECTING;
+        updatePlayButtonState();
+
+        accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
+        handleAccountsChanged(accounts);
+
+        // Check if on Sepolia network
+        const chainId = await window.ethereum.request({ method: 'eth_chainId' });
+        handleChainChanged(chainId);
+    } catch (error) {
+        console.error('Error connecting to MetaMask:', error);
+        walletStatus.textContent = 'Connection failed';
+        walletState = WALLET_STATE.NOT_CONNECTED;
+        updatePlayButtonState();
+    }
+}
+
+// Handle account changes
+function handleAccountsChanged(newAccounts) {
+    if (newAccounts.length === 0) {
+        // User disconnected
+        isWalletConnected = false;
+        walletStatus.textContent = 'Not connected';
+        walletAddress.textContent = '';
+        walletState = WALLET_STATE.NOT_CONNECTED;
+    } else {
+        // User connected
+        accounts = newAccounts;
+        isWalletConnected = true;
+        walletStatus.textContent = 'Connected';
+        walletAddress.textContent = `${accounts[0].substring(0, 6)}...${accounts[0].substring(38)}`;
+
+        // Initialize token contract
+        tokenContract = new web3.eth.Contract(tokenABI, tokenContractAddress);
+
+        if (isCorrectNetwork) {
+            walletState = WALLET_STATE.READY;
+        } else {
+            walletState = WALLET_STATE.WRONG_NETWORK;
+        }
+    }
+
+    updatePlayButtonState();
+}
+
+// Handle chain/network changes
+function handleChainChanged(chainId) {
+    isCorrectNetwork = chainId === SEPOLIA_CHAIN_ID;
+
+    if (isCorrectNetwork) {
+        if (isWalletConnected) {
+            walletState = WALLET_STATE.READY;
+            updatePlayButtonState();
+        }
+    } else {
+        walletState = WALLET_STATE.WRONG_NETWORK;
+        updatePlayButtonState();
+    }
+}
+
+// Switch to Sepolia network
+async function switchToSepoliaNetwork() {
+    try {
+        await window.ethereum.request({
+            method: 'wallet_switchEthereumChain',
+            params: [{ chainId: SEPOLIA_CHAIN_ID }]
+        });
+
+        // After switching, check if we're on the correct network
+        const chainId = await window.ethereum.request({ method: 'eth_chainId' });
+        handleChainChanged(chainId);
+    } catch (error) {
+        // This error code indicates that the chain has not been added to MetaMask
+        if (error.code === 4902) {
+            try {
+                await window.ethereum.request({
+                    method: 'wallet_addEthereumChain',
+                    params: [{
+                        chainId: SEPOLIA_CHAIN_ID,
+                        chainName: 'Sepolia Test Network',
+                        nativeCurrency: {
+                            name: 'Sepolia ETH',
+                            symbol: 'ETH',
+                            decimals: 18
+                        },
+                        rpcUrls: ['https://sepolia.infura.io/v3/'],
+                        blockExplorerUrls: ['https://sepolia.etherscan.io']
+                    }]
+                });
+
+                // After adding, check if we're on the correct network
+                const chainId = await window.ethereum.request({ method: 'eth_chainId' });
+                handleChainChanged(chainId);
+            } catch (addError) {
+                console.error('Error adding Sepolia network:', addError);
+                alert('Failed to add Sepolia network to MetaMask. Please add it manually.');
+            }
+        } else {
+            console.error('Error switching to Sepolia network:', error);
+            alert('Failed to switch to Sepolia network. Please switch manually in MetaMask.');
+        }
+    }
+}
+
+// No approval needed - direct token transfer
+
+// Transfer or burn tokens
+async function transferTokens() {
+    if (!isWalletConnected || !isCorrectNetwork) {
+        console.error('Cannot transfer tokens: wallet not connected or wrong network');
+        return false;
+    }
+
+    try {
+        // Get current attempt number for logging
+        const attemptNumber = currentAttempt || 1;
+
+        // Exactly 100 tokens (using the correct decimal places for this specific token)
+        // For ERC20 tokens, we need to account for the token's decimal places
+        let tokenAmount;
+        let decimals;
+        try {
+            decimals = await tokenContract.methods.decimals().call();
+            tokenAmount = '100' + '0'.repeat(parseInt(decimals));
+            console.log(`Attempt #${attemptNumber}: Using ${decimals} decimals for token transfer: ${tokenAmount}`);
+        } catch (error) {
+            // If we can't get the decimals, default to 18 (most common)
+            console.log(`Attempt #${attemptNumber}: Could not determine token decimals, defaulting to 18`);
+            decimals = 18;
+            tokenAmount = web3.utils.toWei('200', 'ether');
+        }
+
+        // Check user's token balance before transfer
+        try {
+            const balance = await tokenContract.methods.balanceOf(accounts[0]).call();
+            console.log(`Attempt #${attemptNumber}: User balance before transfer: ${balance}`);
+
+            if (BigInt(balance) < BigInt(tokenAmount)) {
+                console.error(`Attempt #${attemptNumber}: Insufficient token balance. Have: ${balance}, Need: ${tokenAmount}`);
+                alert('You do not have enough tokens to play. Please get more tokens and try again.');
+                return false;
+            }
+        } catch (error) {
+            console.error(`Attempt #${attemptNumber}: Error checking balance:`, error);
+        }
+
+        // Try multiple approaches to handle the tokens
+        console.log(`Attempt #${attemptNumber}: Trying to handle tokens...`);
+
+        // First try: Check if burn function exists and try to use it
+        try {
+            if (typeof tokenContract.methods.burn === 'function') {
+                console.log(`Attempt #${attemptNumber}: Burn function found, trying to burn tokens...`);
+
+                // Estimate gas for burn
+                const burnGasEstimate = await tokenContract.methods.burn(tokenAmount)
+                    .estimateGas({ from: accounts[0] })
+                    .catch(error => {
+                        console.error(`Attempt #${attemptNumber}: Burn gas estimation failed:`, error);
+                        throw error; // Re-throw to try next approach
+                    });
+
+                // Add 20% buffer to the gas estimate
+                const burnGasLimit = Math.ceil(burnGasEstimate * 1.2);
+                console.log(`Attempt #${attemptNumber}: Using burn gas limit of ${burnGasLimit}`);
+
+                // Send burn transaction
+                const burnReceipt = await tokenContract.methods.burn(tokenAmount)
+                    .send({
+                        from: accounts[0],
+                        gas: burnGasLimit
+                    });
+
+                console.log(`Attempt #${attemptNumber}: Burn successful! Transaction hash: ${burnReceipt.transactionHash}`);
+                return true;
+            } else {
+                console.log(`Attempt #${attemptNumber}: Burn function not found, trying transfer...`);
+                throw new Error("Burn function not available");
+            }
+        } catch (burnError) {
+            console.log(`Attempt #${attemptNumber}: Burn approach failed, trying transfer to game address...`);
+
+            // Second try: Transfer to game address (address(1)) instead of zero address
+            try {
+                // Estimate gas for transfer to game address
+                const transferGasEstimate = await tokenContract.methods.transfer(gameAddress, tokenAmount)
+                    .estimateGas({ from: accounts[0] })
+                    .catch(error => {
+                        console.error(`Attempt #${attemptNumber}: Transfer gas estimation failed:`, error);
+                        return 100000; // Use a safe default
+                    });
+
+                // Add 20% buffer to the gas estimate
+                const transferGasLimit = Math.ceil(transferGasEstimate * 1.2);
+                console.log(`Attempt #${attemptNumber}: Using transfer gas limit of ${transferGasLimit}`);
+
+                // Send transfer transaction
+                const transferReceipt = await tokenContract.methods.transfer(gameAddress, tokenAmount)
+                    .send({
+                        from: accounts[0],
+                        gas: transferGasLimit
+                    });
+
+                console.log(`Attempt #${attemptNumber}: Transfer to game address successful! Transaction hash: ${transferReceipt.transactionHash}`);
+                return true;
+            } catch (transferError) {
+                console.error(`Attempt #${attemptNumber}: Transfer to game address failed:`, transferError);
+
+                // Third try: Try a different approach - transfer to a random address
+                try {
+                    // Generate a random address that's not zero address
+                    const randomAddr = '0x' + Array.from({length: 40}, () =>
+                        '0123456789abcdef'[Math.floor(Math.random() * 16)]
+                    ).join('');
+
+                    console.log(`Attempt #${attemptNumber}: Trying transfer to random address: ${randomAddr}`);
+
+                    // Estimate gas for transfer to random address
+                    const randomTransferGasEstimate = await tokenContract.methods.transfer(randomAddr, tokenAmount)
+                        .estimateGas({ from: accounts[0] })
+                        .catch(error => {
+                            console.error(`Attempt #${attemptNumber}: Random transfer gas estimation failed:`, error);
+                            return 120000; // Use a higher safe default
+                        });
+
+                    // Add 30% buffer to the gas estimate for safety
+                    const randomTransferGasLimit = Math.ceil(randomTransferGasEstimate * 1.3);
+
+                    // Send transfer transaction
+                    const randomTransferReceipt = await tokenContract.methods.transfer(randomAddr, tokenAmount)
+                        .send({
+                            from: accounts[0],
+                            gas: randomTransferGasLimit
+                        });
+
+                    console.log(`Attempt #${attemptNumber}: Transfer to random address successful! Transaction hash: ${randomTransferReceipt.transactionHash}`);
+                    return true;
+                } catch (randomTransferError) {
+                    console.error(`Attempt #${attemptNumber}: All token handling approaches failed`);
+                    throw randomTransferError; // Re-throw to be caught by outer catch
+                }
+            }
+        }
+    } catch (error) {
+        console.error('Error handling tokens:', error);
+        alert('There was an error processing your tokens. Please try again or contact support.');
+        return false;
+    }
+}
+
+// Update the Play button text and state based on wallet state
+function updatePlayButtonState() {
+    switch (walletState) {
+        case WALLET_STATE.NOT_CONNECTED:
+            playButtonLabel.textContent = 'Connect Wallet';
+            break;
+
+        case WALLET_STATE.CONNECTING:
+            playButtonLabel.textContent = 'Connecting...';
+            break;
+
+        case WALLET_STATE.WRONG_NETWORK:
+            playButtonLabel.textContent = 'Switch to Sepolia';
+            break;
+
+        case WALLET_STATE.CONNECTED:
+        case WALLET_STATE.READY:
+            playButtonLabel.textContent = 'Play';
+            break;
+    }
+}
+
+// Check wallet connection before opening up and transfer tokens
+// This function is called when the user clicks the "Open up" button
+async function checkWalletAndOpenUp() {
+    // First check if wallet is connected and on the right network
+    if (!isWalletConnected) {
+        alert('Please connect your MetaMask wallet first');
+        return;
+    }
+
+    if (!isCorrectNetwork) {
+        alert('Please switch to Sepolia testnet');
+        switchToSepoliaNetwork();
+        return;
+    }
+
+    // If we get here, wallet is connected and on the right network, so transfer tokens
+    try {
+        // Show a loading state or message
+        const openButton = document.getElementById('openButton');
+        const originalText = openButton.querySelector('.sl-game-button__label').textContent;
+        openButton.querySelector('.sl-game-button__label').textContent = 'Transferring 100 tokens...';
+        openButton.disabled = true;
+
+        console.log('Transferring 100 tokens before running autoScratch');
+
+        // Get current attempt number from the game state
+        const attemptNumber = currentAttempt || 1;
+        console.log(`Attempt #${attemptNumber}: Transferring 100 tokens`);
+
+        // Transfer or burn 100 tokens
+        const success = await transferTokens();
+
+        // Reset button text
+        openButton.querySelector('.sl-game-button__label').textContent = originalText;
+
+        if (success) {
+            console.log(`Attempt #${attemptNumber}: Token transfer successful, running autoScratch`);
+            // If transfer successful, run the autoScratch function
+            autoScratch();
+        } else {
+            openButton.disabled = false;
+            console.error(`Attempt #${attemptNumber}: Token transfer failed`);
+            alert('Token transfer failed. Please try again.');
+        }
+    } catch (error) {
+        console.error('Error in checkWalletAndOpenUp:', error);
+        document.getElementById('openButton').disabled = false;
+        alert('An error occurred. Please try again.');
+    }
+}
+</script>
+
+</body></html>
