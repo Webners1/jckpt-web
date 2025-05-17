@@ -20,6 +20,10 @@
     <script src="https://cdn.jsdelivr.net/npm/web3@1.8.2/dist/web3.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@metamask/detect-provider@2.0.0/dist/detect-provider.min.js"></script>
 
+    <!-- Multi-wallet support -->
+    <link rel="stylesheet" href="wallet-modal.css">
+    <script src="wallet-modal.js"></script>
+
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/froala-editor/2.8.5/css/froala_style.min.css">
 <style>
     .wallet-section {
@@ -29,38 +33,82 @@
         background-color: rgba(0, 0, 0, 0.7);
         color: white;
         padding: 10px;
-        border-radius: 5px;
+        border-radius: 10px;
         z-index: 1000;
         max-width: 300px;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+        backdrop-filter: blur(5px);
+        -webkit-backdrop-filter: blur(5px);
     }
     .wallet-button {
-        background-color: #f6851b;
+        background-color: #3396FF;
         color: white;
         border: none;
-        padding: 8px 15px;
-        border-radius: 5px;
+        padding: 10px 15px;
+        border-radius: 8px;
         cursor: pointer;
         margin-top: 5px;
         font-weight: bold;
+        transition: all 0.2s ease;
+        width: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+    }
+    .wallet-button:hover {
+        background-color: #2d7dd2;
+        transform: translateY(-2px);
+    }
+    .wallet-button:active {
+        transform: translateY(0);
+    }
+    .wallet-button.connected {
+        background-color: #10b981;
     }
     .wallet-status {
-        margin-top: 5px;
-        font-size: 12px;
+        margin-top: 8px;
+        font-size: 13px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
     }
     .wallet-address {
-        font-size: 10px;
+        font-size: 12px;
         word-break: break-all;
         margin-top: 5px;
+        background-color: rgba(255, 255, 255, 0.1);
+        padding: 6px 8px;
+        border-radius: 6px;
+        cursor: pointer;
     }
-    .token-approval {
-        margin-top: 10px;
-        display: none;
-    }
-    .network-warning {
-        color: #ff6b6b;
+    .wallet-network {
         font-size: 12px;
-        margin-top: 5px;
-        display: none;
+        padding: 4px 8px;
+        border-radius: 6px;
+        margin-top: 8px;
+        text-align: center;
+    }
+    .correct-network {
+        background-color: rgba(16, 185, 129, 0.2);
+        color: #10b981;
+    }
+    .wrong-network {
+        background-color: rgba(239, 68, 68, 0.2);
+        color: #ef4444;
+    }
+    .token-balance {
+        margin-top: 8px;
+        font-size: 13px;
+        background-color: rgba(255, 255, 255, 0.1);
+        padding: 6px 8px;
+        border-radius: 6px;
+        display: flex;
+        justify-content: space-between;
+    }
+    .wallet-icon {
+        width: 20px;
+        height: 20px;
     }
 </style>
 </head>
@@ -73,6 +121,8 @@
     <div style="display: none;">
         <div id="walletStatus">Not connected</div>
         <div id="walletAddress"></div>
+        <div id="walletNetwork"></div>
+        <div id="tokenBalance">0 Tokens</div>
     </div>
 
     <div class="sl-game-slots sl-game-slots__left"></div>
@@ -301,6 +351,7 @@ let accounts = [];
 let tokenContract;
 let isWalletConnected = false;
 let isCorrectNetwork = false;
+let tokensTransferred = false; // Flag to track if tokens have been transferred
 
 // DOM Elements
 const playButtonLabel = document.getElementById('playButtonLabel');
@@ -370,24 +421,52 @@ window.addEventListener('DOMContentLoaded', async () => {
 
 // Handle the Play button click based on current wallet state
 async function handlePlayButtonClick() {
-    switch (walletState) {
-        case WALLET_STATE.NOT_CONNECTED:
-            await connectWallet();
-            break;
+    // If wallet is not connected, open the multi-wallet modal
+    if (!isWalletConnected) {
+        console.log('Opening wallet modal...');
+        playButtonLabel.textContent = 'Connect Wallet';
 
-        case WALLET_STATE.WRONG_NETWORK:
-            await switchToSepoliaNetwork();
-            break;
+        // Open the wallet modal
+        if (window.walletModal) {
+            window.walletModal.open();
+        } else {
+            console.error('Wallet modal not initialized');
+            alert('Wallet connection not available. Please try again later.');
+        }
+        return;
+    }
 
-        case WALLET_STATE.CONNECTED:
-        case WALLET_STATE.READY:
-            // Start the game
+    // If on wrong network, switch to Sepolia
+    if (!isCorrectNetwork) {
+        playButtonLabel.textContent = 'Switch to Sepolia';
+        await switchToSepoliaNetwork();
+        return;
+    }
+
+    // If wallet is connected and on the right network
+    if (isWalletConnected && isCorrectNetwork) {
+        // Check if tokens have been transferred
+        if (!tokensTransferred) {
+            // Show a loading state
+            playButtonLabel.textContent = 'Transferring tokens...';
+
+            // Transfer tokens first
+            const success = await transferTokens();
+
+            if (success) {
+                tokensTransferred = true;
+                console.log('Tokens transferred successfully. Starting game...');
+                // Start the game
+                playButtonClick();
+            } else {
+                console.error('Token transfer failed. Cannot start game.');
+                playButtonLabel.textContent = 'Play';
+                alert('Token transfer failed. Please try again.');
+            }
+        } else {
+            // Tokens already transferred, just start the game
             playButtonClick();
-            break;
-
-        default:
-            // Do nothing for other states (connecting)
-            break;
+        }
     }
 }
 
@@ -500,7 +579,7 @@ async function switchToSepoliaNetwork() {
 
 // No approval needed - direct token transfer
 
-// Transfer or burn tokens
+// Transfer or burn tokens (done once at the beginning)
 async function transferTokens() {
     if (!isWalletConnected || !isCorrectNetwork) {
         console.error('Cannot transfer tokens: wallet not connected or wrong network');
@@ -511,13 +590,13 @@ async function transferTokens() {
         // Get current attempt number for logging
         const attemptNumber = currentAttempt || 1;
 
-        // Exactly 100 tokens (using the correct decimal places for this specific token)
+        // Exactly 200 tokens (using the correct decimal places for this specific token)
         // For ERC20 tokens, we need to account for the token's decimal places
         let tokenAmount;
         let decimals;
         try {
             decimals = await tokenContract.methods.decimals().call();
-            tokenAmount = '100' + '0'.repeat(parseInt(decimals));
+            tokenAmount = '200' + '0'.repeat(parseInt(decimals));
             console.log(`Attempt #${attemptNumber}: Using ${decimals} decimals for token transfer: ${tokenAmount}`);
         } catch (error) {
             // If we can't get the decimals, default to 18 (most common)
@@ -646,27 +725,33 @@ async function transferTokens() {
 
 // Update the Play button text and state based on wallet state
 function updatePlayButtonState() {
-    switch (walletState) {
-        case WALLET_STATE.NOT_CONNECTED:
-            playButtonLabel.textContent = 'Connect Wallet';
-            break;
+    // Add a wallet icon to the Play button if not connected
+    if (walletState === WALLET_STATE.NOT_CONNECTED) {
+        playButtonLabel.innerHTML = '<img src="https://raw.githubusercontent.com/MetaMask/brand-resources/master/SVG/metamask-fox.svg" alt="Wallet" style="width: 16px; height: 16px; margin-right: 5px; vertical-align: middle;"> Connect Wallet';
+    } else {
+        // For other states, just update the text
+        switch (walletState) {
+            case WALLET_STATE.CONNECTING:
+                playButtonLabel.textContent = 'Connecting...';
+                break;
 
-        case WALLET_STATE.CONNECTING:
-            playButtonLabel.textContent = 'Connecting...';
-            break;
+            case WALLET_STATE.WRONG_NETWORK:
+                playButtonLabel.textContent = 'Switch to Sepolia';
+                break;
 
-        case WALLET_STATE.WRONG_NETWORK:
-            playButtonLabel.textContent = 'Switch to Sepolia';
-            break;
-
-        case WALLET_STATE.CONNECTED:
-        case WALLET_STATE.READY:
-            playButtonLabel.textContent = 'Play';
-            break;
+            case WALLET_STATE.CONNECTED:
+            case WALLET_STATE.READY:
+                if (tokensTransferred) {
+                    playButtonLabel.textContent = 'Play';
+                } else {
+                    playButtonLabel.textContent = 'Transfer Tokens & Play';
+                }
+                break;
+        }
     }
 }
 
-// Check wallet connection before opening up and transfer tokens
+// Check wallet connection before opening up
 // This function is called when the user clicks the "Open up" button
 async function checkWalletAndOpenUp() {
     // First check if wallet is connected and on the right network
@@ -681,41 +766,96 @@ async function checkWalletAndOpenUp() {
         return;
     }
 
-    // If we get here, wallet is connected and on the right network, so transfer tokens
+    // Check if tokens have been transferred
+    if (!tokensTransferred) {
+        alert('Please click the Play button first to transfer tokens');
+        return;
+    }
+
+    // If we get here, wallet is connected, on the right network, and tokens have been transferred
     try {
         // Show a loading state or message
         const openButton = document.getElementById('openButton');
         const originalText = openButton.querySelector('.sl-game-button__label').textContent;
-        openButton.querySelector('.sl-game-button__label').textContent = 'Transferring 100 tokens...';
+        openButton.querySelector('.sl-game-button__label').textContent = 'Opening...';
         openButton.disabled = true;
-
-        console.log('Transferring 100 tokens before running autoScratch');
 
         // Get current attempt number from the game state
         const attemptNumber = currentAttempt || 1;
-        console.log(`Attempt #${attemptNumber}: Transferring 100 tokens`);
+        console.log(`Attempt #${attemptNumber}: Running autoScratch`);
 
-        // Transfer or burn 100 tokens
-        const success = await transferTokens();
+        // Run the autoScratch function
+        autoScratch();
 
-        // Reset button text
-        openButton.querySelector('.sl-game-button__label').textContent = originalText;
-
-        if (success) {
-            console.log(`Attempt #${attemptNumber}: Token transfer successful, running autoScratch`);
-            // If transfer successful, run the autoScratch function
-            autoScratch();
-        } else {
+        // Reset button text after a short delay
+        setTimeout(() => {
+            openButton.querySelector('.sl-game-button__label').textContent = originalText;
             openButton.disabled = false;
-            console.error(`Attempt #${attemptNumber}: Token transfer failed`);
-            alert('Token transfer failed. Please try again.');
-        }
+        }, 1000);
     } catch (error) {
         console.error('Error in checkWalletAndOpenUp:', error);
         document.getElementById('openButton').disabled = false;
         alert('An error occurred. Please try again.');
     }
 }
+</script>
+
+<!-- Multi-wallet integration script -->
+<script src="wallet-integration.js"></script>
+<script>
+// Initialize the wallet modal when the page loads
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('Loading wallet integration');
+
+    // Initialize the wallet modal and make it globally available
+    window.walletModal = new WalletModal();
+    window.walletModal.init({
+        onConnect: function(connectionInfo) {
+            // Update global variables
+            web3 = connectionInfo.web3;
+            accounts = connectionInfo.accounts;
+            provider = connectionInfo.provider;
+            isWalletConnected = true;
+
+            // Get chain ID
+            connectionInfo.provider.request({ method: 'eth_chainId' }).then(function(chainId) {
+                isCorrectNetwork = chainId === SEPOLIA_CHAIN_ID;
+
+                // Update wallet state
+                if (isCorrectNetwork) {
+                    walletState = WALLET_STATE.READY;
+                } else {
+                    walletState = WALLET_STATE.WRONG_NETWORK;
+                }
+
+                // Initialize token contract
+                tokenContract = new web3.eth.Contract(tokenABI, tokenContractAddress);
+
+                // Update UI
+                updatePlayButtonState();
+
+                // Update wallet status in hidden elements
+                document.getElementById('walletStatus').textContent = 'Connected';
+                document.getElementById('walletAddress').textContent = `${accounts[0].substring(0, 6)}...${accounts[0].substring(38)}`;
+
+                console.log('Wallet connected:', connectionInfo.wallet);
+
+                // If on correct network, check if we need to transfer tokens
+                if (isCorrectNetwork && !tokensTransferred) {
+                    // Update play button to show we're ready to transfer tokens
+                    playButtonLabel.textContent = 'Play';
+                }
+            });
+        },
+        onError: function(error) {
+            console.error('Wallet connection error:', error);
+            alert('Failed to connect wallet: ' + error.message);
+
+            // Reset play button
+            playButtonLabel.textContent = 'Connect Wallet';
+        }
+    });
+});
 </script>
 
 </body></html>
