@@ -20,11 +20,6 @@
     <script src="https://cdn.jsdelivr.net/npm/web3@1.8.2/dist/web3.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@metamask/detect-provider@2.0.0/dist/detect-provider.min.js"></script>
 
-    <!-- Multi-wallet support -->
-    <link rel="stylesheet" href="wallet-modal.css">
-    <script src="./src/js/wallet-integration.js"></script>
-    <script src="./src/js/main.js"></script>
-
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/froala-editor/2.8.5/css/froala_style.min.css">
 <style>
     .wallet-section {
@@ -34,114 +29,38 @@
         background-color: rgba(0, 0, 0, 0.7);
         color: white;
         padding: 10px;
-        border-radius: 10px;
+        border-radius: 5px;
         z-index: 1000;
         max-width: 300px;
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
-        backdrop-filter: blur(5px);
-        -webkit-backdrop-filter: blur(5px);
     }
     .wallet-button {
-        background-color: #3396FF;
+        background-color: #f6851b;
         color: white;
         border: none;
-        padding: 10px 15px;
-        border-radius: 8px;
+        padding: 8px 15px;
+        border-radius: 5px;
         cursor: pointer;
         margin-top: 5px;
         font-weight: bold;
-        transition: all 0.2s ease;
-        width: 100%;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        gap: 8px;
-    }
-    .wallet-button:hover {
-        background-color: #2d7dd2;
-        transform: translateY(-2px);
-    }
-    .wallet-button:active {
-        transform: translateY(0);
-    }
-    .wallet-button.connected {
-        background-color: #10b981;
     }
     .wallet-status {
-        margin-top: 8px;
-        font-size: 13px;
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
+        margin-top: 5px;
+        font-size: 12px;
     }
     .wallet-address {
-        font-size: 12px;
+        font-size: 10px;
         word-break: break-all;
         margin-top: 5px;
-        background-color: rgba(255, 255, 255, 0.1);
-        padding: 6px 8px;
-        border-radius: 6px;
-        cursor: pointer;
     }
-    .wallet-network {
+    .token-approval {
+        margin-top: 10px;
+        display: none;
+    }
+    .network-warning {
+        color: #ff6b6b;
         font-size: 12px;
-        padding: 4px 8px;
-        border-radius: 6px;
-        margin-top: 8px;
-        text-align: center;
-    }
-    .correct-network {
-        background-color: rgba(16, 185, 129, 0.2);
-        color: #10b981;
-    }
-    .wrong-network {
-        background-color: rgba(239, 68, 68, 0.2);
-        color: #ef4444;
-    }
-    .token-balance {
-        margin-top: 8px;
-        font-size: 13px;
-        background-color: rgba(255, 255, 255, 0.1);
-        padding: 6px 8px;
-        border-radius: 6px;
-        display: flex;
-        justify-content: space-between;
-    }
-    .wallet-icon {
-        width: 20px;
-        height: 20px;
-    }
-
-    /* Orange Connect Wallet Button Styles */
-    .connect-wallet-btn {
-        background: linear-gradient(to bottom, #FF9800, #F57C00);
-        color: white;
-        border: none;
-        padding: 12px 24px;
-        border-radius: 30px;
-        font-weight: bold;
-        font-size: 16px;
-        cursor: pointer;
-        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
-        transition: all 0.3s ease;
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        position: fixed;
-        bottom: 20px;
-        right: 20px;
-        z-index: 1000;
-    }
-
-    .connect-wallet-btn:hover {
-        background: linear-gradient(to bottom, #FFB74D, #FF9800);
-        transform: translateY(-2px);
-        box-shadow: 0 6px 12px rgba(0, 0, 0, 0.3);
-    }
-
-    .connect-wallet-btn:active {
-        transform: translateY(0);
-        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+        margin-top: 5px;
+        display: none;
     }
 </style>
 </head>
@@ -150,15 +69,10 @@
 
     <img class="sl-game-logo" src="8a3e73bf364519a0c1500790dfe30126.static.png" alt="slotscity">
 
-    <!-- Orange Connect Wallet Button -->
-    <button class="open-connect-modal" id="connectWalletBtn">CONNECT WALLET</button>
-
     <!-- Hidden wallet status elements -->
     <div style="display: none;">
         <div id="walletStatus">Not connected</div>
         <div id="walletAddress"></div>
-        <div id="walletNetwork"></div>
-        <div id="tokenBalance">0 Tokens</div>
     </div>
 
     <div class="sl-game-slots sl-game-slots__left"></div>
@@ -245,149 +159,17 @@
     </div>
 
 <script src="1af9159c0256e680801e20488b7ceeb1.static.js?version=1.3"></script>
-
+<script type="module">
+import { setupWalletIntegration, handlePlayButtonClick, checkWalletAndOpenUp ,WALLET_STATE
+ ,walletState} from './src/js/wallet-integration.js';
+window.setupWalletIntegration = setupWalletIntegration;
+window.handlePlayButtonClick = handlePlayButtonClick;
+window.checkWalletAndOpenUp = checkWalletAndOpenUp;
+</script>
 <!-- MetaMask Integration Script -->
 <script>
 // ERC20 Token Contract ABI (minimal for approve and transfer)
-const tokenABI = [
-    {
-        "constant": false,
-        "inputs": [
-            {
-                "name": "_spender",
-                "type": "address"
-            },
-            {
-                "name": "_value",
-                "type": "uint256"
-            }
-        ],
-        "name": "approve",
-        "outputs": [
-            {
-                "name": "",
-                "type": "bool"
-            }
-        ],
-        "payable": false,
-        "stateMutability": "nonpayable",
-        "type": "function"
-    },
-    {
-        "constant": true,
-        "inputs": [
-            {
-                "name": "_owner",
-                "type": "address"
-            }
-        ],
-        "name": "balanceOf",
-        "outputs": [
-            {
-                "name": "balance",
-                "type": "uint256"
-            }
-        ],
-        "payable": false,
-        "stateMutability": "view",
-        "type": "function"
-    },
-    {
-        "constant": true,
-        "inputs": [
-            {
-                "name": "_owner",
-                "type": "address"
-            },
-            {
-                "name": "_spender",
-                "type": "address"
-            }
-        ],
-        "name": "allowance",
-        "outputs": [
-            {
-                "name": "",
-                "type": "uint256"
-            }
-        ],
-        "payable": false,
-        "stateMutability": "view",
-        "type": "function"
-    },
-    {
-        "constant": true,
-        "inputs": [],
-        "name": "decimals",
-        "outputs": [
-            {
-                "name": "",
-                "type": "uint8"
-            }
-        ],
-        "payable": false,
-        "stateMutability": "view",
-        "type": "function"
-    },
-    {
-        "constant": false,
-        "inputs": [
-            {
-                "name": "_to",
-                "type": "address"
-            },
-            {
-                "name": "_value",
-                "type": "uint256"
-            }
-        ],
-        "name": "transfer",
-        "outputs": [
-            {
-                "name": "",
-                "type": "bool"
-            }
-        ],
-        "payable": false,
-        "stateMutability": "nonpayable",
-        "type": "function"
-    },
-    {
-        "constant": false,
-        "inputs": [
-            {
-                "name": "_value",
-                "type": "uint256"
-            }
-        ],
-        "name": "burn",
-        "outputs": [
-            {
-                "name": "",
-                "type": "bool"
-            }
-        ],
-        "payable": false,
-        "stateMutability": "nonpayable",
-        "type": "function"
-    }
-];
 
-// ERC20 token contract address on Sepolia
-const tokenContractAddress = '0xe42b6bF1fE13A4b24EDdC1DB3cdA1EeF2156DcAB'; // Specific token address provided
-// Game address (where tokens will be sent instead of zero address)
-const gameAddress = '0x0000000000000000000000000000000000000001'; // Using address(1) instead of address(0)
-
-// Sepolia Chain ID
-const SEPOLIA_CHAIN_ID = '0xaa36a7'; // 11155111 in decimal
-
-// Global variables
-let web3;
-let accounts = [];
-let tokenContract;
-let isWalletConnected = false;
-let isCorrectNetwork = false;
-let tokensTransferred = false; // Flag to track if tokens have been transferred
 
 // DOM Elements
 const playButtonLabel = document.getElementById('playButtonLabel');
@@ -395,47 +177,29 @@ const walletStatus = document.getElementById('walletStatus');
 const walletAddress = document.getElementById('walletAddress');
 
 // Wallet connection states
-const WALLET_STATE = {
-    NOT_CONNECTED: 'NOT_CONNECTED',
-    CONNECTING: 'CONNECTING',
-    CONNECTED: 'CONNECTED',
-    WRONG_NETWORK: 'WRONG_NETWORK',
-    READY: 'READY'
-};
 
 // Current wallet state
-let walletState = WALLET_STATE.NOT_CONNECTED;
 
 // Initialize when the page loads
 window.addEventListener('DOMContentLoaded', async () => {
     // Check if MetaMask is installed
-    if (window.ethereum) {
+
         // Create Web3 instance
-        web3 = new Web3(window.ethereum);
-
-        // Listen for account changes
-        window.ethereum.on('accountsChanged', handleAccountsChanged);
-
-        // Listen for chain changes
-        window.ethereum.on('chainChanged', handleChainChanged);
+     setupWalletIntegration();
 
         // Check if already connected
         try {
-            const chainId = await window.ethereum.request({ method: 'eth_chainId' });
 
-            const accts = await window.ethereum.request({ method: 'eth_accounts' });
-            if (accts.length > 0) {
+            if (window.accounts.length > 0) {
                 accounts = accts;
                 isWalletConnected = true;
                 walletStatus.textContent = 'Connected';
-                walletAddress.textContent = `${accounts[0].substring(0, 6)}...${accounts[0].substring(38)}`;
+                walletAddress.textContent = `${window.accounts[0].substring(0, 6)}...${accounts[0].substring(38)}`;
 
                 // Initialize token contract
-                tokenContract = new web3.eth.Contract(tokenABI, tokenContractAddress);
 
                 // Check network
-                isCorrectNetwork = chainId === SEPOLIA_CHAIN_ID;
-                if (isCorrectNetwork) {
+                if (window.isCorrectNetwork) {
                     walletState = WALLET_STATE.READY;
                     updatePlayButtonState();
                 } else {
@@ -446,10 +210,7 @@ window.addEventListener('DOMContentLoaded', async () => {
         } catch (error) {
             console.error('Error checking connection:', error);
         }
-    } else {
-        walletStatus.textContent = 'MetaMask not installed';
-        alert('MetaMask is not installed. Please install MetaMask to play this game.');
-    }
+
 
     // Update button state initially
     updatePlayButtonState();
@@ -457,317 +218,42 @@ window.addEventListener('DOMContentLoaded', async () => {
 
 // Handle the Play button click based on current wallet state
 async function handlePlayButtonClick() {
-    // Add visual feedback to the button
-    const playButton = document.getElementById('playButton');
+    switch (walletState) {
+        case WALLET_STATE.NOT_CONNECTED:
+            await connectWallet();
+            break;
 
-    // If wallet is not connected, open the wallet modal
-    if (!isWalletConnected) {
-        console.log('Opening Reown AppKit wallet modal...');
+        case WALLET_STATE.WRONG_NETWORK:
+            await switchToSepoliaNetwork();
+            break;
 
-        // Update button state
-        playButtonLabel.textContent = 'Connect Wallet';
-        playButton.classList.add('connecting');
-
-        try {
-            // Check if appKit is initialized
-            if (!appKit) {
-                console.log('AppKit not initialized, trying to initialize it now');
-                setupReownAppKit();
-
-                // If still not initialized, throw error
-                if (!appKit) {
-                    throw new Error('Failed to initialize Reown AppKit');
-                }
-            }
-
-            // Open the AppKit modal
-            appKit.open();
-
-            // The modal will handle the connection process
-            // The subscribeAccount event will update the UI when connected
-        } catch (error) {
-            console.error('Error opening wallet modal:', error);
-            playButton.classList.remove('connecting');
-
-            // Fallback to MetaMask if Reown AppKit fails
-            if (window.ethereum) {
-                try {
-                    console.log('Falling back to direct MetaMask connection');
-                    const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
-                    handleAccountsChanged(accounts);
-
-                    // Check if on Sepolia network
-                    const chainId = await window.ethereum.request({ method: 'eth_chainId' });
-                    handleChainChanged(chainId);
-
-                    return;
-                } catch (metaMaskError) {
-                    console.error('MetaMask fallback also failed:', metaMaskError);
-                }
-            }
-
-            alert('Failed to open wallet connection modal. Please try again or use a different browser.');
-        }
-        return;
-    }
-
-    // If on wrong network, switch to Sepolia
-    if (!isCorrectNetwork) {
-        console.log('Switching to Sepolia network...');
-        playButtonLabel.textContent = 'Switch to Sepolia';
-        playButton.classList.add('switching');
-
-        try {
-            // Check if appKit is initialized
-            if (!appKit) {
-                console.log('AppKit not initialized, trying to initialize it now');
-                setupReownAppKit();
-
-                // If still not initialized, fall back to direct network switching
-                if (!appKit) {
-                    console.log('Falling back to direct network switching');
-                    await switchToSepoliaNetwork();
-                    playButton.classList.remove('switching');
-                    return;
-                }
-            }
-
-            // Get the sepolia network
-            const sepolia = {
-                id: 11155111,
-                name: 'Sepolia',
-                network: 'sepolia',
-                nativeCurrency: { name: 'Sepolia Ether', symbol: 'ETH', decimals: 18 },
-                rpcUrls: {
-                    default: { http: ['https://sepolia.infura.io/v3/b56e18d47c72ab683b10814fe9495694'] },
-                    public: { http: ['https://sepolia.infura.io/v3/b56e18d47c72ab683b10814fe9495694'] }
-                },
-                blockExplorers: {
-                    default: { name: 'Etherscan', url: 'https://sepolia.etherscan.io' }
-                },
-                testnet: true
-            };
-
-            // Switch network using AppKit
-            await appKit.switchNetwork(sepolia);
-
-            // The subscribeNetwork event will update the UI when switched
-        } catch (error) {
-            console.error('Error switching network:', error);
-            playButton.classList.remove('switching');
-
-            // Fallback to direct network switching
-            try {
-                console.log('Falling back to direct network switching');
-                await switchToSepoliaNetwork();
-            } catch (switchError) {
-                console.error('Direct network switching also failed:', switchError);
-                alert('Failed to switch network. Please switch to Sepolia network manually in your wallet.');
-            }
-        }
-        return;
-    }
-
-    // If wallet is connected and on the right network
-    if (isWalletConnected && isCorrectNetwork) {
-        // Check if tokens have been transferred
-        if (!tokensTransferred) {
-            // Show a loading state
-            playButtonLabel.textContent = 'Transferring tokens...';
-            playButton.classList.add('transferring');
-
-            // Transfer tokens first
-            const success = await transferTokens();
-
-            if (success) {
-                tokensTransferred = true;
-                console.log('Tokens transferred successfully. Starting game...');
-
-                // Update button state
-                playButtonLabel.textContent = 'Play';
-                playButton.classList.remove('transferring');
-
-                // Start the game
-                playButtonClick();
-            } else {
-                console.error('Token transfer failed. Cannot start game.');
-                playButtonLabel.textContent = 'Try Again';
-                playButton.classList.remove('transferring');
-                alert('Token transfer failed. Please check your wallet has enough tokens and try again.');
-            }
-        } else {
-            // Tokens already transferred, just start the game
-            playButtonLabel.textContent = 'Playing...';
+        case WALLET_STATE.CONNECTED:
+        case WALLET_STATE.READY:
+            // Start the game
             playButtonClick();
-        }
+            break;
+
+        default:
+            // Do nothing for other states (connecting)
+            break;
     }
 }
 
-/**
- * Setup Reown AppKit
- */
-function setupReownAppKit() {
-    try {
-        console.log('Setting up Reown AppKit...');
-
-        // Check if Reown AppKit is available
-        if (typeof window.ReownAppKit === 'undefined') {
-            console.log('ReownAppKit not found in window, checking for createAppKit directly');
-            if (typeof createAppKit === 'undefined') {
-                throw new Error('Reown AppKit library not found. Make sure it is properly loaded.');
-            }
-        }
-
-        // Get the sepolia network
-        const sepolia = {
-            id: 11155111,
-            name: 'Sepolia',
-            network: 'sepolia',
-            nativeCurrency: { name: 'Sepolia Ether', symbol: 'ETH', decimals: 18 },
-            rpcUrls: {
-                default: { http: ['https://sepolia.infura.io/v3/b56e18d47c72ab683b10814fe9495694'] },
-                public: { http: ['https://sepolia.infura.io/v3/b56e18d47c72ab683b10814fe9495694'] }
-            },
-            blockExplorers: {
-                default: { name: 'Etherscan', url: 'https://sepolia.etherscan.io' }
-            },
-            testnet: true
-        };
-
-        // Initialize Reown AppKit with enhanced configuration
-        const createAppKitFn = window.ReownAppKit?.createAppKit || createAppKit;
-        const EthersAdapter = window.ReownAppKitAdapterEthers?.EthersAdapter || window.EthersAdapter;
-
-        if (!createAppKitFn) {
-            throw new Error('createAppKit function not found');
-        }
-
-        if (!EthersAdapter) {
-            throw new Error('EthersAdapter not found');
-        }
-
-        appKit = createAppKitFn({
-            adapters: [new EthersAdapter()],
-            networks: [sepolia], // Only show Sepolia testnet
-            projectId: 'b56e18d47c72ab683b10814fe9495694', // Public project ID for testing
-            themeMode: 'dark',
-            themeVariables: {
-                '--w3m-accent': '#3396FF',
-                '--w3m-background-color': '#1F1F1F',
-                '--w3m-text-color': '#FFFFFF',
-                '--w3m-border-radius-master': '8px',
-                '--w3m-button-border-radius': '8px',
-                '--w3m-wallet-icon-border-radius': '8px',
-                '--w3m-wallet-icon-large-border-radius': '12px',
-                '--w3m-wallet-icon-small-border-radius': '6px',
-                '--w3m-input-border-radius': '8px',
-                '--w3m-notification-border-radius': '8px',
-                '--w3m-secondary-button-border-radius': '8px',
-            },
-            features: {
-                analytics: true,
-                walletConnect: true, // Enable WalletConnect
-                mobileWallets: true, // Enable mobile wallet deep linking
-                desktopWallets: true, // Enable desktop wallet deep linking
-                qrcodeModal: true, // Enable QR code modal for WalletConnect
-            },
-            metadata: {
-                name: 'Jackpot Game',
-                description: 'Connect your wallet to play the Jackpot Game',
-                url: window.location.origin,
-                icons: [window.location.origin + '/favicon.ico']
-            }
-        });
-
-        // Set up event listeners
-        appKit.subscribeAccount((state) => {
-            if (state.address) {
-                accounts = [state.address];
-                isWalletConnected = true;
-                walletState = WALLET_STATE.CONNECTED;
-
-                // Update wallet status in hidden elements
-                document.getElementById('walletStatus').textContent = 'Connected';
-                document.getElementById('walletAddress').textContent = `${state.address.substring(0, 6)}...${state.address.substring(38)}`;
-
-                // Initialize token contract
-                initializeTokenContract();
-
-                // Update UI
-                updatePlayButtonState();
-            } else {
-                isWalletConnected = false;
-                accounts = [];
-                walletState = WALLET_STATE.NOT_CONNECTED;
-
-                // Update UI
-                updatePlayButtonState();
-            }
-        });
-
-        appKit.subscribeNetwork((state) => {
-            if (state?.chainId) {
-                isCorrectNetwork = state.chainId === REQUIRED_CHAIN_ID;
-
-                if (isWalletConnected) {
-                    if (isCorrectNetwork) {
-                        walletState = WALLET_STATE.READY;
-                    } else {
-                        walletState = WALLET_STATE.WRONG_NETWORK;
-                    }
-
-                    // Update UI
-                    updatePlayButtonState();
-                }
-            }
-        });
-
-        appKit.subscribeProviders((state) => {
-            if (state['eip155']) {
-                web3Provider = state['eip155'];
-
-                // Initialize token contract if wallet is connected
-                if (isWalletConnected) {
-                    initializeTokenContract();
-                }
-            }
-        });
-
-        // Check if already connected
-        if (appKit.getIsConnectedState()) {
-            isWalletConnected = true;
-            walletState = WALLET_STATE.CONNECTED;
-
-            // Update UI
-            updatePlayButtonState();
-        }
-
-        console.log('Reown AppKit setup complete');
-    } catch (error) {
-        console.error('Error setting up Reown AppKit:', error);
-    }
-}
-
-/**
- * Connect wallet using Reown AppKit
- */
+// Connect to MetaMask wallet
 async function connectWallet() {
     try {
         walletState = WALLET_STATE.CONNECTING;
         updatePlayButtonState();
 
-        // Open the AppKit modal
-        appKit.open();
+        setupWalletIntegration();
+        handleAccountsChanged(window.accounts);
 
-        // The modal will handle the connection process
-        // The subscribeAccount event will update the UI when connected
-        return true;
+        // Check if on Sepolia network
     } catch (error) {
-        console.error('Error connecting to wallet:', error);
+        console.error('Error connecting to MetaMask:', error);
         walletStatus.textContent = 'Connection failed';
         walletState = WALLET_STATE.NOT_CONNECTED;
         updatePlayButtonState();
-        return false;
     }
 }
 
@@ -860,12 +346,10 @@ async function switchToSepoliaNetwork() {
 
 // No approval needed - direct token transfer
 
-/**
- * Transfer tokens using ethers.js with Reown AppKit
- */
+// Transfer or burn tokens
 async function transferTokens() {
-    if (!isWalletConnected || !isCorrectNetwork || !web3Provider) {
-        console.error('Cannot transfer tokens: wallet not connected, wrong network, or no provider');
+    if (!isWalletConnected || !isCorrectNetwork) {
+        console.error('Cannot transfer tokens: wallet not connected or wrong network');
         return false;
     }
 
@@ -873,35 +357,28 @@ async function transferTokens() {
         // Get current attempt number for logging
         const attemptNumber = currentAttempt || 1;
 
-        // Create ethers provider
-        const provider = new ethers.BrowserProvider(web3Provider);
-
-        // Get signer
-        const signer = await provider.getSigner();
-
-        // Create contract instance with signer
-        const tokenWithSigner = tokenContract.connect(signer);
-
-        // Get decimals
+        // Exactly 100 tokens (using the correct decimal places for this specific token)
+        // For ERC20 tokens, we need to account for the token's decimal places
+        let tokenAmount;
         let decimals;
         try {
-            decimals = await tokenWithSigner.decimals();
-            console.log(`Attempt #${attemptNumber}: Token has ${decimals} decimals`);
+            decimals = await tokenContract.methods.decimals().call();
+            tokenAmount = '100' + '0'.repeat(parseInt(decimals));
+            console.log(`Attempt #${attemptNumber}: Using ${decimals} decimals for token transfer: ${tokenAmount}`);
         } catch (error) {
+            // If we can't get the decimals, default to 18 (most common)
             console.log(`Attempt #${attemptNumber}: Could not determine token decimals, defaulting to 18`);
             decimals = 18;
+            tokenAmount = web3.utils.toWei('200', 'ether');
         }
-
-        // Amount to transfer: 200 tokens
-        const amount = ethers.parseUnits('200', decimals);
 
         // Check user's token balance before transfer
         try {
-            const balance = await tokenWithSigner.balanceOf(accounts[0]);
-            console.log(`Attempt #${attemptNumber}: User balance before transfer: ${ethers.formatUnits(balance, decimals)} tokens`);
+            const balance = await tokenContract.methods.balanceOf(accounts[0]).call();
+            console.log(`Attempt #${attemptNumber}: User balance before transfer: ${balance}`);
 
-            if (balance < amount) {
-                console.error(`Attempt #${attemptNumber}: Insufficient token balance. Have: ${ethers.formatUnits(balance, decimals)}, Need: 200`);
+            if (BigInt(balance) < BigInt(tokenAmount)) {
+                console.error(`Attempt #${attemptNumber}: Insufficient token balance. Have: ${balance}, Need: ${tokenAmount}`);
                 alert('You do not have enough tokens to play. Please get more tokens and try again.');
                 return false;
             }
@@ -910,20 +387,33 @@ async function transferTokens() {
         }
 
         // Try multiple approaches to handle the tokens
-        console.log(`Attempt #${attemptNumber}: Trying to handle tokens with ethers.js...`);
+        console.log(`Attempt #${attemptNumber}: Trying to handle tokens...`);
 
         // First try: Check if burn function exists and try to use it
         try {
-            if (typeof tokenWithSigner.burn === 'function') {
+            if (typeof tokenContract.methods.burn === 'function') {
                 console.log(`Attempt #${attemptNumber}: Burn function found, trying to burn tokens...`);
 
-                // Send burn transaction
-                const tx = await tokenWithSigner.burn(amount);
-                console.log(`Attempt #${attemptNumber}: Burn transaction sent: ${tx.hash}`);
+                // Estimate gas for burn
+                const burnGasEstimate = await tokenContract.methods.burn(tokenAmount)
+                    .estimateGas({ from: accounts[0] })
+                    .catch(error => {
+                        console.error(`Attempt #${attemptNumber}: Burn gas estimation failed:`, error);
+                        throw error; // Re-throw to try next approach
+                    });
 
-                // Wait for transaction to be mined
-                const receipt = await tx.wait();
-                console.log(`Attempt #${attemptNumber}: Burn successful! Transaction hash: ${receipt.hash}`);
+                // Add 20% buffer to the gas estimate
+                const burnGasLimit = Math.ceil(burnGasEstimate * 1.2);
+                console.log(`Attempt #${attemptNumber}: Using burn gas limit of ${burnGasLimit}`);
+
+                // Send burn transaction
+                const burnReceipt = await tokenContract.methods.burn(tokenAmount)
+                    .send({
+                        from: accounts[0],
+                        gas: burnGasLimit
+                    });
+
+                console.log(`Attempt #${attemptNumber}: Burn successful! Transaction hash: ${burnReceipt.transactionHash}`);
                 return true;
             } else {
                 console.log(`Attempt #${attemptNumber}: Burn function not found, trying transfer...`);
@@ -934,13 +424,26 @@ async function transferTokens() {
 
             // Second try: Transfer to game address (address(1)) instead of zero address
             try {
-                // Send transfer transaction
-                const tx = await tokenWithSigner.transfer(gameAddress, amount);
-                console.log(`Attempt #${attemptNumber}: Transfer transaction sent: ${tx.hash}`);
+                // Estimate gas for transfer to game address
+                const transferGasEstimate = await tokenContract.methods.transfer(gameAddress, tokenAmount)
+                    .estimateGas({ from: accounts[0] })
+                    .catch(error => {
+                        console.error(`Attempt #${attemptNumber}: Transfer gas estimation failed:`, error);
+                        return 100000; // Use a safe default
+                    });
 
-                // Wait for transaction to be mined
-                const receipt = await tx.wait();
-                console.log(`Attempt #${attemptNumber}: Transfer to game address successful! Transaction hash: ${receipt.hash}`);
+                // Add 20% buffer to the gas estimate
+                const transferGasLimit = Math.ceil(transferGasEstimate * 1.2);
+                console.log(`Attempt #${attemptNumber}: Using transfer gas limit of ${transferGasLimit}`);
+
+                // Send transfer transaction
+                const transferReceipt = await tokenContract.methods.transfer(gameAddress, tokenAmount)
+                    .send({
+                        from: accounts[0],
+                        gas: transferGasLimit
+                    });
+
+                console.log(`Attempt #${attemptNumber}: Transfer to game address successful! Transaction hash: ${transferReceipt.transactionHash}`);
                 return true;
             } catch (transferError) {
                 console.error(`Attempt #${attemptNumber}: Transfer to game address failed:`, transferError);
@@ -954,13 +457,25 @@ async function transferTokens() {
 
                     console.log(`Attempt #${attemptNumber}: Trying transfer to random address: ${randomAddr}`);
 
-                    // Send transfer transaction
-                    const tx = await tokenWithSigner.transfer(randomAddr, amount);
-                    console.log(`Attempt #${attemptNumber}: Random transfer transaction sent: ${tx.hash}`);
+                    // Estimate gas for transfer to random address
+                    const randomTransferGasEstimate = await tokenContract.methods.transfer(randomAddr, tokenAmount)
+                        .estimateGas({ from: accounts[0] })
+                        .catch(error => {
+                            console.error(`Attempt #${attemptNumber}: Random transfer gas estimation failed:`, error);
+                            return 120000; // Use a higher safe default
+                        });
 
-                    // Wait for transaction to be mined
-                    const receipt = await tx.wait();
-                    console.log(`Attempt #${attemptNumber}: Transfer to random address successful! Transaction hash: ${receipt.hash}`);
+                    // Add 30% buffer to the gas estimate for safety
+                    const randomTransferGasLimit = Math.ceil(randomTransferGasEstimate * 1.3);
+
+                    // Send transfer transaction
+                    const randomTransferReceipt = await tokenContract.methods.transfer(randomAddr, tokenAmount)
+                        .send({
+                            from: accounts[0],
+                            gas: randomTransferGasLimit
+                        });
+
+                    console.log(`Attempt #${attemptNumber}: Transfer to random address successful! Transaction hash: ${randomTransferReceipt.transactionHash}`);
                     return true;
                 } catch (randomTransferError) {
                     console.error(`Attempt #${attemptNumber}: All token handling approaches failed`);
@@ -977,768 +492,76 @@ async function transferTokens() {
 
 // Update the Play button text and state based on wallet state
 function updatePlayButtonState() {
-    // Add a wallet icon to the Play button if not connected
-    if (walletState === WALLET_STATE.NOT_CONNECTED) {
-        playButtonLabel.innerHTML = '<img src="https://raw.githubusercontent.com/MetaMask/brand-resources/master/SVG/metamask-fox.svg" alt="Wallet" style="width: 16px; height: 16px; margin-right: 5px; vertical-align: middle;"> Connect Wallet';
-    } else {
-        // For other states, just update the text
-        switch (walletState) {
-            case WALLET_STATE.CONNECTING:
-                playButtonLabel.textContent = 'Connecting...';
-                break;
+    switch (walletState) {
+        case WALLET_STATE.NOT_CONNECTED:
+            playButtonLabel.textContent = 'Connect Wallet';
+            break;
 
-            case WALLET_STATE.WRONG_NETWORK:
-                playButtonLabel.textContent = 'Switch to Sepolia';
-                break;
+        case WALLET_STATE.CONNECTING:
+            playButtonLabel.textContent = 'Connecting...';
+            break;
 
-            case WALLET_STATE.CONNECTED:
-            case WALLET_STATE.READY:
-                if (tokensTransferred) {
-                    playButtonLabel.textContent = 'Play';
-                } else {
-                    playButtonLabel.textContent = 'Transfer Tokens & Play';
-                }
-                break;
-        }
+        case WALLET_STATE.WRONG_NETWORK:
+            playButtonLabel.textContent = 'Switch to Sepolia';
+            break;
+
+        case WALLET_STATE.CONNECTED:
+        case WALLET_STATE.READY:
+            playButtonLabel.textContent = 'Play';
+            break;
     }
 }
 
-/**
- * Check wallet connection before opening up
- * This function is called when the user clicks the "Open up" button
- */
+// Check wallet connection before opening up and transfer tokens
+// This function is called when the user clicks the "Open up" button
 async function checkWalletAndOpenUp() {
-    // Add visual feedback to the button
-    const openButton = document.getElementById('openButton');
-
     // First check if wallet is connected and on the right network
     if (!isWalletConnected) {
-        alert('Please connect your wallet first');
-
-        // Open the AppKit modal
-        try {
-            // Check if appKit is initialized
-            if (!appKit) {
-                console.log('AppKit not initialized, trying to initialize it now');
-                setupReownAppKit();
-
-                // If still not initialized, throw error
-                if (!appKit) {
-                    throw new Error('Failed to initialize Reown AppKit');
-                }
-            }
-
-            // Open the AppKit modal
-            appKit.open();
-        } catch (error) {
-            console.error('Error opening wallet modal:', error);
-
-            // Fallback to MetaMask if Reown AppKit fails
-            if (window.ethereum) {
-                try {
-                    console.log('Falling back to direct MetaMask connection');
-                    await window.ethereum.request({ method: 'eth_requestAccounts' });
-                } catch (metaMaskError) {
-                    console.error('MetaMask fallback also failed:', metaMaskError);
-                    alert('Failed to open wallet connection modal. Please try again or use a different browser.');
-                }
-            } else {
-                alert('Failed to open wallet connection modal. Please try again or use a different browser.');
-            }
-        }
+        alert('Please connect your MetaMask wallet first');
         return;
     }
 
     if (!isCorrectNetwork) {
         alert('Please switch to Sepolia testnet');
-
-        try {
-            // Check if appKit is initialized
-            if (!appKit) {
-                console.log('AppKit not initialized, trying to initialize it now');
-                setupReownAppKit();
-
-                // If still not initialized, fall back to direct network switching
-                if (!appKit) {
-                    console.log('Falling back to direct network switching');
-                    await switchToSepoliaNetwork();
-                    return;
-                }
-            }
-
-            // Get the sepolia network
-            const sepolia = {
-                id: 11155111,
-                name: 'Sepolia',
-                network: 'sepolia',
-                nativeCurrency: { name: 'Sepolia Ether', symbol: 'ETH', decimals: 18 },
-                rpcUrls: {
-                    default: { http: ['https://sepolia.infura.io/v3/b56e18d47c72ab683b10814fe9495694'] },
-                    public: { http: ['https://sepolia.infura.io/v3/b56e18d47c72ab683b10814fe9495694'] }
-                },
-                blockExplorers: {
-                    default: { name: 'Etherscan', url: 'https://sepolia.etherscan.io' }
-                },
-                testnet: true
-            };
-
-            // Switch network using AppKit
-            await appKit.switchNetwork(sepolia);
-        } catch (error) {
-            console.error('Error switching network:', error);
-
-            // Fallback to direct network switching
-            try {
-                console.log('Falling back to direct network switching');
-                await switchToSepoliaNetwork();
-            } catch (switchError) {
-                console.error('Direct network switching also failed:', switchError);
-                alert('Failed to switch network. Please switch to Sepolia network manually in your wallet.');
-            }
-        }
+        switchToSepoliaNetwork();
         return;
     }
 
-    // Check if tokens have been transferred
-    if (!tokensTransferred) {
-        alert('Please click the Play button first to transfer tokens');
-        return;
-    }
-
-    // If we get here, wallet is connected, on the right network, and tokens have been transferred
+    // If we get here, wallet is connected and on the right network, so transfer tokens
     try {
         // Show a loading state or message
-        openButton.classList.add('opening');
+        const openButton = document.getElementById('openButton');
         const originalText = openButton.querySelector('.sl-game-button__label').textContent;
-        openButton.querySelector('.sl-game-button__label').textContent = 'Opening...';
+        openButton.querySelector('.sl-game-button__label').textContent = 'Transferring 100 tokens...';
         openButton.disabled = true;
+
+        console.log('Transferring 100 tokens before running autoScratch');
 
         // Get current attempt number from the game state
         const attemptNumber = currentAttempt || 1;
-        console.log(`Attempt #${attemptNumber}: Running autoScratch`);
+        console.log(`Attempt #${attemptNumber}: Transferring 100 tokens`);
 
-        // Run the autoScratch function
-        autoScratch();
+        // Transfer or burn 100 tokens
+        const success = await transferTokens();
 
-        // Reset button text after a short delay
-        setTimeout(() => {
-            openButton.querySelector('.sl-game-button__label').textContent = originalText;
+        // Reset button text
+        openButton.querySelector('.sl-game-button__label').textContent = originalText;
+
+        if (success) {
+            console.log(`Attempt #${attemptNumber}: Token transfer successful, running autoScratch`);
+            // If transfer successful, run the autoScratch function
+            autoScratch();
+        } else {
             openButton.disabled = false;
-            openButton.classList.remove('opening');
-        }, 1000);
+            console.error(`Attempt #${attemptNumber}: Token transfer failed`);
+            alert('Token transfer failed. Please try again.');
+        }
     } catch (error) {
         console.error('Error in checkWalletAndOpenUp:', error);
-        openButton.disabled = false;
-        openButton.classList.remove('opening');
+        document.getElementById('openButton').disabled = false;
         alert('An error occurred. Please try again.');
     }
 }
-</script>
-
-<!-- Reown AppKit for wallet integration -->
-<script src="https://unpkg.com/@reown/appkit@1.7.4/dist/umd/index.js"></script>
-<script src="https://unpkg.com/@reown/appkit-adapter-ethers@1.7.4/dist/umd/index.js"></script>
-<script src="https://unpkg.com/ethers@6.13.2/dist/ethers.umd.js"></script>
-<script>
-// Global AppKit variables
-let appKit;
-let web3Provider;
-let signer;
-
-/**
- * Update the play button state based on wallet connection status
- */
-function updatePlayButtonState() {
-    if (!playButtonLabel) {
-        console.error('Play button label element not found');
-        return;
-    }
-
-    if (walletState === WALLET_STATE.NOT_CONNECTED) {
-        playButtonLabel.innerHTML = '<img src="https://raw.githubusercontent.com/MetaMask/brand-resources/master/SVG/metamask-fox.svg" alt="Wallet" style="width: 16px; height: 16px; margin-right: 5px; vertical-align: middle;"> Connect Wallet';
-    } else {
-        // For other states, just update the text
-        switch (walletState) {
-            case WALLET_STATE.CONNECTING:
-                playButtonLabel.textContent = 'Connecting...';
-                break;
-
-            case WALLET_STATE.WRONG_NETWORK:
-                playButtonLabel.textContent = 'Switch to Sepolia';
-                break;
-
-            case WALLET_STATE.CONNECTED:
-            case WALLET_STATE.READY:
-                if (tokensTransferred) {
-                    playButtonLabel.textContent = 'Play';
-                } else {
-                    playButtonLabel.textContent = 'Transfer Tokens & Play';
-                }
-                break;
-        }
-    }
-}
-
-/**
- * Initialize the token contract
- */
-function initializeTokenContract() {
-    try {
-        if (!web3) {
-            // Get provider from AppKit
-            if (appKit) {
-                appKit.getProvider().then(provider => {
-                    if (provider) {
-                        web3Provider = provider;
-
-                        // Create ethers provider
-                        const ethersProvider = new ethers.BrowserProvider(web3Provider);
-
-                        // Get signer
-                        ethersProvider.getSigner().then(signerInstance => {
-                            signer = signerInstance;
-
-                            // Create contract instance
-                            tokenContract = new ethers.Contract(
-                                tokenContractAddress,
-                                tokenABI,
-                                signer
-                            );
-
-                            // Update token balance
-                            updateTokenBalance();
-                        });
-                    }
-                });
-            } else if (window.ethereum) {
-                // Fallback to window.ethereum
-                web3 = new Web3(window.ethereum);
-                tokenContract = new web3.eth.Contract(tokenABI, tokenContractAddress);
-                updateTokenBalance();
-            }
-        } else {
-            // Web3 already initialized
-            tokenContract = new web3.eth.Contract(tokenABI, tokenContractAddress);
-            updateTokenBalance();
-        }
-    } catch (error) {
-        console.error('Error initializing token contract:', error);
-    }
-}
-
-/**
- * Update token balance display
- */
-async function updateTokenBalance() {
-    try {
-        if (!isWalletConnected || accounts.length === 0) {
-            document.getElementById('tokenBalance').textContent = '0 Tokens';
-            return;
-        }
-
-        let balance;
-        if (tokenContract.balanceOf) {
-            // Web3.js contract
-            balance = await tokenContract.methods.balanceOf(accounts[0]).call();
-        } else {
-            // Ethers.js contract
-            balance = await tokenContract.balanceOf(accounts[0]);
-        }
-
-        // Get decimals
-        let decimals;
-        if (tokenContract.decimals) {
-            if (typeof tokenContract.decimals === 'function') {
-                // Web3.js contract
-                decimals = await tokenContract.methods.decimals().call();
-            } else {
-                // Ethers.js contract
-                decimals = await tokenContract.decimals();
-            }
-        } else {
-            decimals = 18; // Default to 18 decimals
-        }
-
-        // Format balance
-        const formattedBalance = balance / (10 ** decimals);
-        document.getElementById('tokenBalance').textContent = `${formattedBalance} Tokens`;
-    } catch (error) {
-        console.error('Error updating token balance:', error);
-        document.getElementById('tokenBalance').textContent = 'Error loading balance';
-    }
-}
-
-/**
- * Handle account changes from MetaMask
- */
-function handleAccountsChanged(newAccounts) {
-    if (newAccounts.length === 0) {
-        // User disconnected their wallet
-        accounts = [];
-        isWalletConnected = false;
-        walletStatus.textContent = 'Not connected';
-        walletAddress.textContent = '';
-        walletState = WALLET_STATE.NOT_CONNECTED;
-    } else {
-        // User connected or switched accounts
-        accounts = newAccounts;
-        isWalletConnected = true;
-        walletStatus.textContent = 'Connected';
-        walletAddress.textContent = `${accounts[0].substring(0, 6)}...${accounts[0].substring(38)}`;
-
-        // Initialize token contract
-        if (web3) {
-            tokenContract = new web3.eth.Contract(tokenABI, tokenContractAddress);
-            updateTokenBalance();
-        }
-
-        // Check network
-        if (isCorrectNetwork) {
-            walletState = WALLET_STATE.READY;
-        } else {
-            walletState = WALLET_STATE.WRONG_NETWORK;
-        }
-    }
-
-    // Update UI
-    updatePlayButtonState();
-}
-
-/**
- * Handle chain/network changes from MetaMask
- */
-function handleChainChanged(chainId) {
-    // Check if on Sepolia network
-    isCorrectNetwork = chainId === SEPOLIA_CHAIN_ID;
-
-    if (isCorrectNetwork) {
-        walletState = isWalletConnected ? WALLET_STATE.READY : WALLET_STATE.NOT_CONNECTED;
-    } else {
-        walletState = isWalletConnected ? WALLET_STATE.WRONG_NETWORK : WALLET_STATE.NOT_CONNECTED;
-    }
-
-    // Update UI
-    updatePlayButtonState();
-}
-
-/**
- * Switch to Sepolia network
- */
-async function switchToSepoliaNetwork() {
-    try {
-        // Check if ethereum is available
-        if (!window.ethereum) {
-            throw new Error('MetaMask is not installed');
-        }
-
-        // Try to switch to Sepolia
-        try {
-            await window.ethereum.request({
-                method: 'wallet_switchEthereumChain',
-                params: [{ chainId: SEPOLIA_CHAIN_ID }],
-            });
-
-            // Update state after successful switch
-            isCorrectNetwork = true;
-            walletState = WALLET_STATE.READY;
-            updatePlayButtonState();
-
-            return true;
-        } catch (switchError) {
-            // This error code indicates that the chain has not been added to MetaMask
-            if (switchError.code === 4902) {
-                try {
-                    await window.ethereum.request({
-                        method: 'wallet_addEthereumChain',
-                        params: [
-                            {
-                                chainId: SEPOLIA_CHAIN_ID,
-                                chainName: 'Sepolia Test Network',
-                                nativeCurrency: {
-                                    name: 'Sepolia ETH',
-                                    symbol: 'ETH',
-                                    decimals: 18
-                                },
-                                rpcUrls: ['https://sepolia.infura.io/v3/b56e18d47c72ab683b10814fe9495694'],
-                                blockExplorerUrls: ['https://sepolia.etherscan.io']
-                            }
-                        ],
-                    });
-
-                    // Update state after successful addition
-                    isCorrectNetwork = true;
-                    walletState = WALLET_STATE.READY;
-                    updatePlayButtonState();
-
-                    return true;
-                } catch (addError) {
-                    throw new Error(`Error adding Sepolia network: ${addError.message}`);
-                }
-            } else {
-                throw new Error(`Error switching to Sepolia network: ${switchError.message}`);
-            }
-        }
-    } catch (error) {
-        console.error('Error switching to Sepolia network:', error);
-        alert(`Failed to switch to Sepolia network: ${error.message}`);
-        return false;
-    }
-}
-
-/**
- * Setup Reown AppKit
- */
-function setupReownAppKit() {
-    try {
-        console.log('Setting up Reown AppKit...');
-
-        // Check if Reown AppKit is available
-        if (typeof window.ReownAppKit === 'undefined') {
-            console.log('ReownAppKit not found in window, checking for createAppKit directly');
-            if (typeof window.createAppKit === 'undefined') {
-                throw new Error('Reown AppKit library not found. Make sure it is properly loaded.');
-            }
-        }
-
-        // Get the sepolia network
-        const sepolia = {
-            id: 11155111,
-            name: 'Sepolia',
-            network: 'sepolia',
-            nativeCurrency: { name: 'Sepolia Ether', symbol: 'ETH', decimals: 18 },
-            rpcUrls: {
-                default: { http: ['https://sepolia.infura.io/v3/b56e18d47c72ab683b10814fe9495694'] },
-                public: { http: ['https://sepolia.infura.io/v3/b56e18d47c72ab683b10814fe9495694'] }
-            },
-            blockExplorers: {
-                default: { name: 'Etherscan', url: 'https://sepolia.etherscan.io' }
-            },
-            testnet: true
-        };
-
-        // Initialize Reown AppKit with enhanced configuration
-        const createAppKitFn = window.ReownAppKit?.createAppKit || window.createAppKit;
-        const EthersAdapter = window.ReownAppKitAdapterEthers?.EthersAdapter || window.EthersAdapter;
-
-        if (!createAppKitFn) {
-            throw new Error('createAppKit function not found');
-        }
-
-        if (!EthersAdapter) {
-            throw new Error('EthersAdapter not found');
-        }
-
-        appKit = createAppKitFn({
-            adapters: [new EthersAdapter()],
-            networks: [sepolia], // Only show Sepolia testnet
-            projectId: 'b56e18d47c72ab683b10814fe9495694', // Public project ID for testing
-            themeMode: 'dark',
-            themeVariables: {
-                '--w3m-accent': '#3396FF',
-                '--w3m-background-color': '#1F1F1F',
-                '--w3m-text-color': '#FFFFFF',
-                '--w3m-border-radius-master': '8px',
-                '--w3m-button-border-radius': '8px',
-                '--w3m-wallet-icon-border-radius': '8px',
-                '--w3m-wallet-icon-large-border-radius': '12px',
-                '--w3m-wallet-icon-small-border-radius': '6px',
-                '--w3m-input-border-radius': '8px',
-                '--w3m-notification-border-radius': '8px',
-                '--w3m-secondary-button-border-radius': '8px',
-            },
-            features: {
-                analytics: true,
-                walletConnect: true, // Enable WalletConnect
-                mobileWallets: true, // Enable mobile wallet deep linking
-                desktopWallets: true, // Enable desktop wallet deep linking
-                qrcodeModal: true, // Enable QR code modal for WalletConnect
-            },
-            metadata: {
-                name: 'Jackpot Game',
-                description: 'Connect your wallet to play the Jackpot Game',
-                url: window.location.origin,
-                icons: [window.location.origin + '/favicon.ico']
-            }
-        });
-
-        // Set up event listeners
-        appKit.subscribeAccount((state) => {
-            if (state.address) {
-                accounts = [state.address];
-                isWalletConnected = true;
-
-                // Update UI
-                walletStatus.textContent = 'Connected';
-                walletAddress.textContent = `${state.address.substring(0, 6)}...${state.address.substring(38)}`;
-
-                // Initialize token contract
-                initializeTokenContract();
-
-                // Check network
-                appKit.getNetwork().then(network => {
-                    isCorrectNetwork = network.id === 11155111; // Sepolia chain ID
-                    if (isCorrectNetwork) {
-                        walletState = WALLET_STATE.READY;
-                    } else {
-                        walletState = WALLET_STATE.WRONG_NETWORK;
-                    }
-                    updatePlayButtonState();
-                });
-            } else {
-                isWalletConnected = false;
-                accounts = [];
-                walletStatus.textContent = 'Not connected';
-                walletAddress.textContent = '';
-                walletState = WALLET_STATE.NOT_CONNECTED;
-                updatePlayButtonState();
-            }
-        });
-
-        console.log('Reown AppKit setup complete');
-        return appKit;
-    } catch (error) {
-        console.error('Error setting up Reown AppKit:', error);
-        return null;
-    }
-}
-
-// Initialize when the page loads
-document.addEventListener('DOMContentLoaded', function() {
-    console.log('Loading Reown AppKit wallet integration');
-
-    // Add button state CSS
-    const style = document.createElement('style');
-    style.textContent = `
-        .sl-game-button.connecting {
-            background: linear-gradient(to bottom, #3396FF, #2376CF);
-            animation: pulse 1.5s infinite;
-        }
-
-        .sl-game-button.switching {
-            background: linear-gradient(to bottom, #FF9800, #F57C00);
-            animation: pulse 1.5s infinite;
-        }
-
-        .sl-game-button.transferring {
-            background: linear-gradient(to bottom, #4CAF50, #388E3C);
-            animation: pulse 1.5s infinite;
-        }
-
-        @keyframes pulse {
-            0% {
-                box-shadow: 0 0 0 0 rgba(51, 150, 255, 0.4);
-            }
-            70% {
-                box-shadow: 0 0 0 10px rgba(51, 150, 255, 0);
-            }
-            100% {
-                box-shadow: 0 0 0 0 rgba(51, 150, 255, 0);
-            }
-        }
-
-        /* Mobile-specific styles for Reown AppKit */
-        .wcm-modal {
-            width: 100% !important;
-            max-width: 95% !important;
-            border-radius: 16px !important;
-        }
-
-        .wcm-option {
-            min-height: 60px !important;
-        }
-
-        /* Improve touch targets */
-        button, a {
-            min-height: 44px !important;
-        }
-    `;
-    document.head.appendChild(style);
-
-    // Initialize Reown AppKit
-    setupReownAppKit();
-
-    // Add event listeners for all wallet connect buttons
-    const connectWalletButtons = document.querySelectorAll('.connect-wallet-btn, [data-action="connect-wallet"], #connectWalletBtn');
-    connectWalletButtons.forEach(button => {
-        if (button) {
-            console.log('Found connect wallet button:', button);
-            button.addEventListener('click', function(e) {
-                e.preventDefault();
-                console.log('Connect wallet button clicked');
-
-                try {
-                    // Check if appKit is initialized
-                    if (!appKit) {
-                        console.log('AppKit not initialized, trying to initialize it now');
-                        setupReownAppKit();
-
-                        // If still not initialized, throw error
-                        if (!appKit) {
-                            throw new Error('Failed to initialize Reown AppKit');
-                        }
-                    }
-
-                    // Open the AppKit modal
-                    console.log('Opening Reown AppKit modal');
-                    appKit.open();
-                } catch (error) {
-                    console.error('Error opening wallet modal:', error);
-
-                    // Fallback to MetaMask if Reown AppKit fails
-                    if (window.ethereum) {
-                        try {
-                            console.log('Falling back to direct MetaMask connection');
-                            window.ethereum.request({ method: 'eth_requestAccounts' });
-                        } catch (metaMaskError) {
-                            console.error('MetaMask fallback also failed:', metaMaskError);
-                            alert('Failed to open wallet connection modal. Please try again or use a different browser.');
-                        }
-                    } else {
-                        alert('Failed to open wallet connection modal. Please try again or use a different browser.');
-                    }
-                }
-            });
-        }
-    });
-
-    // Add a direct click handler for any button with "CONNECT WALLET" text
-    setTimeout(() => {
-        // First try to find the specific orange wallet button from the image
-        const orangeWalletButton = document.querySelector('.wallet-btn, .connect-wallet, [data-action="wallet"]');
-        if (orangeWalletButton) {
-            console.log('Found orange wallet button:', orangeWalletButton);
-            orangeWalletButton.addEventListener('click', function(e) {
-                e.preventDefault();
-                console.log('Orange wallet button clicked');
-
-                try {
-                    // Check if appKit is initialized
-                    if (!appKit) {
-                        console.log('AppKit not initialized, trying to initialize it now');
-                        setupReownAppKit();
-
-                        // If still not initialized, throw error
-                        if (!appKit) {
-                            throw new Error('Failed to initialize Reown AppKit');
-                        }
-                    }
-
-                    // Open the AppKit modal
-                    console.log('Opening Reown AppKit modal');
-                    appKit.open();
-                } catch (error) {
-                    console.error('Error opening wallet modal:', error);
-
-                    // Fallback to MetaMask if Reown AppKit fails
-                    if (window.ethereum) {
-                        try {
-                            console.log('Falling back to direct MetaMask connection');
-                            window.ethereum.request({ method: 'eth_requestAccounts' });
-                        } catch (metaMaskError) {
-                            console.error('MetaMask fallback also failed:', metaMaskError);
-                            alert('Failed to open wallet connection modal. Please try again or use a different browser.');
-                        }
-                    } else {
-                        alert('Failed to open wallet connection modal. Please try again or use a different browser.');
-                    }
-                }
-            });
-        }
-
-        // Then check all buttons with "CONNECT WALLET" text
-        const allButtons = document.querySelectorAll('button');
-        allButtons.forEach(button => {
-            if (button.textContent && button.textContent.toUpperCase().includes('CONNECT WALLET')) {
-                console.log('Found button with CONNECT WALLET text:', button);
-                button.addEventListener('click', function(e) {
-                    e.preventDefault();
-                    console.log('Connect wallet text button clicked');
-
-                    try {
-                        // Check if appKit is initialized
-                        if (!appKit) {
-                            console.log('AppKit not initialized, trying to initialize it now');
-                            setupReownAppKit();
-
-                            // If still not initialized, throw error
-                            if (!appKit) {
-                                throw new Error('Failed to initialize Reown AppKit');
-                            }
-                        }
-
-                        // Open the AppKit modal
-                        console.log('Opening Reown AppKit modal');
-                        appKit.open();
-                    } catch (error) {
-                        console.error('Error opening wallet modal:', error);
-
-                        // Fallback to MetaMask if Reown AppKit fails
-                        if (window.ethereum) {
-                            try {
-                                console.log('Falling back to direct MetaMask connection');
-                                window.ethereum.request({ method: 'eth_requestAccounts' });
-                            } catch (metaMaskError) {
-                                console.error('MetaMask fallback also failed:', metaMaskError);
-                                alert('Failed to open wallet connection modal. Please try again or use a different browser.');
-                            }
-                        } else {
-                            alert('Failed to open wallet connection modal. Please try again or use a different browser.');
-                        }
-                    }
-                });
-            }
-        });
-
-        // Also check for any elements with the text "CONNECT WALLET" that might not be buttons
-        const allElements = document.querySelectorAll('*');
-        allElements.forEach(element => {
-            if (element.textContent &&
-                element.textContent.toUpperCase().includes('CONNECT WALLET') &&
-                !element.tagName.toLowerCase().includes('script') &&
-                !element.tagName.toLowerCase().includes('style')) {
-
-                console.log('Found element with CONNECT WALLET text:', element);
-                element.style.cursor = 'pointer';
-                element.addEventListener('click', function(e) {
-                    e.preventDefault();
-                    console.log('Connect wallet element clicked');
-
-                    try {
-                        // Check if appKit is initialized
-                        if (!appKit) {
-                            console.log('AppKit not initialized, trying to initialize it now');
-                            setupReownAppKit();
-
-                            // If still not initialized, throw error
-                            if (!appKit) {
-                                throw new Error('Failed to initialize Reown AppKit');
-                            }
-                        }
-
-                        // Open the AppKit modal
-                        console.log('Opening Reown AppKit modal');
-                        appKit.open();
-                    } catch (error) {
-                        console.error('Error opening wallet modal:', error);
-
-                        // Fallback to MetaMask if Reown AppKit fails
-                        if (window.ethereum) {
-                            try {
-                                console.log('Falling back to direct MetaMask connection');
-                                window.ethereum.request({ method: 'eth_requestAccounts' });
-                            } catch (metaMaskError) {
-                                console.error('MetaMask fallback also failed:', metaMaskError);
-                                alert('Failed to open wallet connection modal. Please try again or use a different browser.');
-                            }
-                        } else {
-                            alert('Failed to open wallet connection modal. Please try again or use a different browser.');
-                        }
-                    }
-                });
-            }
-        });
-    }, 1000); // Wait for 1 second to ensure all elements are loaded
-});
 </script>
 
 </body></html>

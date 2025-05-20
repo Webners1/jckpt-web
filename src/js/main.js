@@ -1,5 +1,4 @@
 // Import the game logic and wallet integration
-import './game.js';
 import { appKit } from '../config/appKit';
 import { store } from '../store/appkitStore';
 import { updateTheme, updateButtonVisibility } from '../utils/dom';
