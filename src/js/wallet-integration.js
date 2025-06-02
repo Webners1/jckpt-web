@@ -53,11 +53,23 @@ export const WALLET_STATE = {
 
 export let walletState = WALLET_STATE.NOT_CONNECTED;
 
+// Token balance display elements
+let tokenBalanceContainer;
+let tokenBalanceAmount;
+let tokenBalanceStatus;
+
+// Security flags to prevent game access without proper token transfer
+let isTokenTransferConfirmed = false;
+let transferTransactionHash = null;
+
 /**
  * Initialize the Reown AppKit wallet integration
  */
 export function setupWalletIntegration() {
   console.log('🔧 Setting up enhanced Reown AppKit wallet integration...');
+
+  // Initialize token balance display
+  initializeTokenBalanceDisplay();
 
   // Initialize subscribers
   initializeSubscribers(appKit);
@@ -75,9 +87,48 @@ export function setupWalletIntegration() {
     connectWalletBtn.addEventListener('click', handlePlayButtonClick);
   }
 
+  // Set up the "Open Up" button to handle scratching
+  const openButton = document.querySelector('#openButton');
+  if(openButton) {
+    console.log('✅ Found open button with ID: openButton');
+    openButton.addEventListener('click', checkWalletAndOpenUp);
+  }
+
   // Set up periodic system health checks
   setInterval(checkSystemHealth, 30000); // Check every 30 seconds
 }
+
+/**
+ * Initialize token balance display
+ */
+function initializeTokenBalanceDisplay() {
+  console.log('💰 Initializing token balance display...');
+
+  // Get DOM elements
+  tokenBalanceContainer = document.getElementById('tokenBalanceContainer');
+  tokenBalanceAmount = document.getElementById('tokenBalanceAmount');
+  tokenBalanceStatus = document.getElementById('tokenBalanceStatus');
+
+  if (!tokenBalanceContainer || !tokenBalanceAmount || !tokenBalanceStatus) {
+    console.warn('⚠️ Token balance display elements not found');
+    return;
+  }
+
+  // Initially hide the balance display
+  tokenBalanceContainer.style.display = 'none';
+
+  console.log('✅ Token balance display initialized');
+}
+
+
+
+/**
+ * Refresh token balance (called by refresh button)
+ */
+window.refreshTokenBalance = async function() {
+  console.log('🔄 Refreshing token balance...');
+  await updateTokenBalance();
+};
 
 /**
  * Check system health and update UI accordingly
@@ -123,19 +174,27 @@ function initializeSubscribers(modal) {
   // Account subscription
   modal.subscribeAccount(state => {
     updateStore('accountState', state);
-    
+
     if (state.address) {
       window.accounts = [state.address];
       window.isWalletConnected = true;
       walletState = WALLET_STATE.CONNECTED;
       console.log('👛 Wallet connected:', state.address);
+
+      // Update token balance when wallet connects
+      setTimeout(() => updateTokenBalance(), 1000);
     } else {
       window.isWalletConnected = false;
       window.accounts = [];
       walletState = WALLET_STATE.NOT_CONNECTED;
       console.log('👛 Wallet disconnected');
+
+      // Hide token balance when wallet disconnects
+      if (tokenBalanceContainer) {
+        tokenBalanceContainer.style.display = 'none';
+      }
     }
-    
+
     updateWalletUI();
   });
 
@@ -243,40 +302,66 @@ export async function handlePlayButtonClick() {
     // State: Ready to transfer tokens
     if (window.isWalletConnected && window.isCorrectNetwork && !window.tokensTransferred) {
       console.log('💰 Initiating enhanced token transfer...');
-      
+
+      // Check balance first
+      const hasBalance = await checkUserBalance();
+      if (!hasBalance) {
+        showUserMessage(`Insufficient token balance. You need ${TRANSFER_AMOUNT} tokens to play.`, 'error');
+        updatePlayButton(); // This will show "No Balance" button
+        return;
+      }
+
       // Set loading state
       window.isTransferInProgress = true;
       setButtonState(playButton, playButtonLabel, 'transferring', 'Processing Transaction...');
-      
+
       const success = await performEnhancedTokenTransfer();
-      
+
       if (success) {
-        window.tokensTransferred = true;
-        console.log('✅ Token transfer complete, starting game...');
-        setButtonState(playButton, playButtonLabel, 'playing', 'Starting Game...');
-        
-        // Start the game after brief delay to show success
-        setTimeout(() => {
-          startGame();
+        // Only set flags if we have a confirmed transaction hash
+        if (success.transactionHash) {
+          window.tokensTransferred = true;
+          isTokenTransferConfirmed = true;
+          transferTransactionHash = success.transactionHash;
+
+          console.log('✅ Token transfer CONFIRMED with transaction hash:', success.transactionHash);
+          console.log('🔐 Security flags set - game access now allowed');
+
+          setButtonState(playButton, playButtonLabel, 'playing', 'Starting Game...');
+
+          // Start the game immediately after successful and CONFIRMED transfer
+          setTimeout(() => {
+            startGame();
+            window.isTransferInProgress = false;
+            // Hide the play button after game starts
+            if (playButton) {
+              playButton.style.display = 'none';
+            }
+          }, 1500);
+        } else {
+          console.warn('⚠️ Transfer submitted but no transaction hash - waiting for confirmation');
+          setButtonState(playButton, playButtonLabel, 'transferring', 'Confirming Transaction...');
           window.isTransferInProgress = false;
-          resetButtonState(playButton, playButtonLabel);
-        }, 2000);
+        }
       } else {
         window.isTransferInProgress = false;
         resetButtonState(playButton, playButtonLabel);
       }
       return;
     }
-    
-    // State: Ready to play (tokens already transferred)
-    if (window.tokensTransferred) {
-      console.log('🎮 Starting game...');
+
+    // State: Tokens already transferred AND confirmed - start game immediately
+    if (window.tokensTransferred && isTokenTransferConfirmed && transferTransactionHash) {
+      console.log('🎮 Starting game immediately - transfer confirmed:', transferTransactionHash);
       setButtonState(playButton, playButtonLabel, 'playing', 'Starting Game...');
-      
+
       setTimeout(() => {
         startGame();
-        resetButtonState(playButton, playButtonLabel);
-      }, 1000);
+        // Hide the play button after game starts
+        if (playButton) {
+          playButton.style.display = 'none';
+        }
+      }, 500);
       return;
     }
     
@@ -291,12 +376,35 @@ export async function handlePlayButtonClick() {
 }
 
 /**
+ * Check if user has sufficient balance for transfer
+ */
+async function checkUserBalance() {
+  if (!window.tokenContract || !window.userSigner) {
+    return false;
+  }
+
+  try {
+    const userAddress = await window.userSigner.getAddress();
+    const balance = await window.tokenContract.balanceOf(userAddress);
+    const decimals = await window.tokenContract.decimals().catch(() => 18);
+    const transferAmount = ethers.parseUnits(TRANSFER_AMOUNT, decimals);
+
+    console.log(`💰 Balance check: ${ethers.formatUnits(balance, decimals)} tokens (need ${TRANSFER_AMOUNT})`);
+
+    return balance >= transferAmount;
+  } catch (error) {
+    console.error('❌ Error checking balance:', error);
+    return false;
+  }
+}
+
+/**
  * Start the game - centralized game starting logic
  */
 function startGame() {
   try {
     console.log('🎮 Starting game...');
-    
+
     if (typeof window.playButtonClick === 'function') {
       window.playButtonClick();
     } else if (typeof window.startGame === 'function') {
@@ -529,33 +637,91 @@ async function initializeTokenContract(provider) {
  * Update token balance display with enhanced formatting
  */
 async function updateTokenBalance() {
+  // Update new token balance display
+  if (tokenBalanceContainer && tokenBalanceAmount && tokenBalanceStatus) {
+    if (!window.isWalletConnected || !window.tokenContract) {
+      tokenBalanceContainer.style.display = 'none';
+      return;
+    }
+
+    try {
+      // Show the balance container
+      tokenBalanceContainer.style.display = 'block';
+
+      // Show loading state
+      tokenBalanceAmount.textContent = '--';
+      tokenBalanceStatus.textContent = 'Loading...';
+      tokenBalanceStatus.className = 'token-balance-loading';
+
+      console.log('💰 Fetching token balance...');
+
+      // Get user address
+      const userAddress = await window.userSigner.getAddress();
+
+      // Get balance and decimals
+      const [balance, decimals] = await Promise.all([
+        window.tokenContract.balanceOf(userAddress),
+        window.tokenContract.decimals().catch(() => 18)
+      ]);
+
+      // Format balance
+      const formattedBalance = ethers.formatUnits(balance, decimals);
+      const displayBalance = parseFloat(formattedBalance).toFixed(2);
+
+      // Update display
+      tokenBalanceAmount.textContent = displayBalance;
+      tokenBalanceStatus.textContent = 'Updated';
+      tokenBalanceStatus.className = 'token-balance-loading';
+
+      console.log(`💰 Token balance updated: ${displayBalance}`);
+
+      // Update play button based on balance
+      updatePlayButton();
+
+      // Clear status after 2 seconds
+      setTimeout(() => {
+        if (tokenBalanceStatus) {
+          tokenBalanceStatus.textContent = '';
+        }
+      }, 2000);
+
+    } catch (error) {
+      console.error('❌ Error fetching token balance:', error);
+
+      tokenBalanceAmount.textContent = 'Error';
+      tokenBalanceStatus.textContent = 'Failed to load';
+      tokenBalanceStatus.className = 'token-balance-error';
+    }
+  }
+
+  // Legacy balance update for other elements
   if (!window.tokenContract || !window.accounts?.length) return;
-  
+
   try {
     const balance = await window.tokenContract.balanceOf(window.accounts[0]);
     const decimals = await window.tokenContract.decimals();
     const formattedBalance = ethers.formatUnits(balance, decimals);
-    
+
     console.log(`💰 Token balance: ${formattedBalance}`);
-    
+
     // Update UI element if it exists
     const balanceElement = document.getElementById('tokenBalance');
     if (balanceElement) {
       balanceElement.textContent = `${formattedBalance} Tokens`;
     }
-    
+
     // Check if user has enough for transfer
     const transferAmount = ethers.parseUnits(TRANSFER_AMOUNT, decimals);
     const hasSufficientBalance = balance >= transferAmount;
-    
+
     // Update UI to show transfer readiness
     const transferStatusElement = document.getElementById('transferStatus');
     if (transferStatusElement && !window.isTransferInProgress) {
-      transferStatusElement.textContent = hasSufficientBalance ? 
+      transferStatusElement.textContent = hasSufficientBalance ?
         'Ready to transfer' : 'Insufficient balance';
       transferStatusElement.className = hasSufficientBalance ? 'status-ready' : 'status-warning';
     }
-    
+
     return formattedBalance;
   } catch (error) {
     console.error('❌ Error checking token balance:', error);
@@ -602,15 +768,34 @@ function updatePlayButton() {
     if (playButton) playButton.disabled = true;
   } else if (!window.tokensTransferred) {
     if (window.userSigner) {
-      playButtonLabel.textContent = 'Sign & Play (Gasless)';
-      if (playButton) playButton.disabled = false;
+      // Check balance asynchronously and update button
+      checkUserBalance().then(hasBalance => {
+        if (hasBalance) {
+          playButtonLabel.textContent = 'Sign & Play (Gasless)';
+          if (playButton) playButton.disabled = false;
+        } else {
+          playButtonLabel.textContent = 'No Balance';
+          if (playButton) playButton.disabled = true;
+        }
+      }).catch(() => {
+        playButtonLabel.textContent = 'Sign & Play (Gasless)';
+        if (playButton) playButton.disabled = false;
+      });
     } else {
       playButtonLabel.textContent = 'Initialize Wallet';
       if (playButton) playButton.disabled = false;
     }
   } else {
-    playButtonLabel.textContent = 'Play Game';
-    if (playButton) playButton.disabled = false;
+    // Tokens already transferred AND confirmed - hide button since game should auto-start
+    if (window.tokensTransferred && isTokenTransferConfirmed && transferTransactionHash) {
+      if (playButton) {
+        playButton.style.display = 'none';
+      }
+    } else {
+      // Tokens transferred but not confirmed - show waiting state
+      playButtonLabel.textContent = 'Confirming Transfer...';
+      if (playButton) playButton.disabled = true;
+    }
   }
 }
 
@@ -718,11 +903,17 @@ export async function checkWalletAndOpenUp() {
     return;
   }
   
-  // Validate tokens transferred
-  if (!window.tokensTransferred) {
-    showUserMessage('Please transfer tokens first by clicking the Play button', 'warning');
-    return;
-  }
+  // Validate tokens transferred AND confirmed
+  // if (!window.tokensTransferred || !isTokenTransferConfirmed || !transferTransactionHash) {
+  //   showUserMessage('Please complete token transfer first by clicking the Play button and signing the transaction', 'warning');
+  //   console.log('🔐 Game access denied - token transfer not confirmed');
+  //   console.log('  tokensTransferred:', window.tokensTransferred);
+  //   console.log('  isTokenTransferConfirmed:', isTokenTransferConfirmed);
+  //   console.log('  transferTransactionHash:', transferTransactionHash);
+  //   return;
+  // }
+
+  // console.log('🔐 Security check passed - confirmed transfer:', transferTransactionHash);
   
   // Execute game logic
   try {
@@ -808,5 +999,20 @@ function showUserMessage(message, type = 'error') {
   if (!window.userMessages) window.userMessages = [];
   window.userMessages.push(notification);
 }
+
+// Debug function to check security status
+window.checkSecurityStatus = function() {
+  console.log('🔐 Security Status:');
+  console.log('  tokensTransferred:', window.tokensTransferred);
+  console.log('  isTokenTransferConfirmed:', isTokenTransferConfirmed);
+  console.log('  transferTransactionHash:', transferTransactionHash);
+  console.log('  Game access allowed:', window.tokensTransferred && isTokenTransferConfirmed && transferTransactionHash);
+  return {
+    tokensTransferred: window.tokensTransferred,
+    isTokenTransferConfirmed,
+    transferTransactionHash,
+    gameAccessAllowed: window.tokensTransferred && isTokenTransferConfirmed && transferTransactionHash
+  };
+};
 
 // Export main functions

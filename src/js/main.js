@@ -2,23 +2,25 @@
 import { appKit } from '../config/appKit';
 import { store } from '../store/appkitStore';
 import { updateTheme, updateButtonVisibility } from '../utils/dom';
-import { setupWalletIntegration, handlePlayButtonClick } from './wallet-integration.js';
+import { setupWalletIntegration, handlePlayButtonClick, checkWalletAndOpenUp } from './wallet-integration.js';
 
 // Initialize the wallet integration when the DOM is loaded
 document.addEventListener('DOMContentLoaded', () => {
   console.log('Initializing wallet integration...');
   setupWalletIntegration();
 
-  // Set up the play button click handler
-  const playButton = document.getElementById('playButton');
-  if (playButton) {
-    playButton.addEventListener('click', handlePlayButtonClick);
-  }
+  // Play button is handled by wallet-integration.js - don't add duplicate listeners
 
-  // Set up the open button click handler
+  // Set up the open button click handler with secure validation
   const openButton = document.getElementById('openButton');
   if (openButton) {
-    openButton.addEventListener('click', window.checkWalletAndOpenUp);
+    console.log('✅ Open button found, attaching event listener');
+    openButton.addEventListener('click', () => {
+      console.log('🔥 Open button clicked - calling checkWalletAndOpenUp');
+      checkWalletAndOpenUp();
+    });
+  } else {
+    console.error('❌ Open button not found with ID: openButton');
   }
 
   // Set up the connect wallet button handler
@@ -39,3 +41,4 @@ document.addEventListener('DOMContentLoaded', () => {
 
 // Make wallet functions available globally
 window.handlePlayButtonClick = handlePlayButtonClick;
+window.checkWalletAndOpenUp = checkWalletAndOpenUp;

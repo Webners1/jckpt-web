@@ -62,12 +62,158 @@
         margin-top: 5px;
         display: none;
     }
+
+    /* Token Balance Display - Casino Theme */
+    .token-balance-container {
+        position: fixed;
+        top: 20px;
+        left: 20px;
+        background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 50%, #1a1a1a 100%);
+        border: 2px solid #f6851b;
+        border-radius: 15px;
+        padding: 15px 20px;
+        box-shadow: 0 8px 25px rgba(246, 133, 27, 0.3),
+                    inset 0 1px 0 rgba(255, 255, 255, 0.1);
+        backdrop-filter: blur(10px);
+        z-index: 1000;
+        min-width: 200px;
+        font-family: 'Arial', sans-serif;
+        transform: translateY(0);
+        transition: all 0.3s ease;
+    }
+
+    .token-balance-container:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 12px 35px rgba(246, 133, 27, 0.4),
+                    inset 0 1px 0 rgba(255, 255, 255, 0.1);
+    }
+
+    .token-balance-header {
+        display: flex;
+        align-items: center;
+        margin-bottom: 8px;
+    }
+
+    .token-balance-icon {
+        width: 24px;
+        height: 24px;
+        background: linear-gradient(45deg, #f6851b, #ffa726);
+        border-radius: 50%;
+        margin-right: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: bold;
+        color: #1a1a1a;
+        font-size: 14px;
+        box-shadow: 0 2px 8px rgba(246, 133, 27, 0.4);
+    }
+
+    .token-balance-title {
+        color: #f6851b;
+        font-size: 14px;
+        font-weight: bold;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+    }
+
+    .token-balance-amount {
+        color: #ffffff;
+        font-size: 20px;
+        font-weight: bold;
+        text-align: center;
+        text-shadow: 0 2px 4px rgba(0, 0, 0, 0.7);
+        margin: 5px 0;
+        background: linear-gradient(45deg, #ffffff, #f0f0f0);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+    }
+
+    .token-balance-loading {
+        color: #f6851b;
+        font-size: 16px;
+        text-align: center;
+        opacity: 0.8;
+        animation: pulse 1.5s ease-in-out infinite;
+    }
+
+    .token-balance-error {
+        color: #ff6b6b;
+        font-size: 12px;
+        text-align: center;
+        opacity: 0.9;
+    }
+
+    .token-balance-refresh {
+        background: linear-gradient(45deg, #f6851b, #ffa726);
+        border: none;
+        border-radius: 8px;
+        color: #1a1a1a;
+        font-size: 11px;
+        font-weight: bold;
+        padding: 6px 12px;
+        cursor: pointer;
+        margin-top: 8px;
+        width: 100%;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        transition: all 0.2s ease;
+        box-shadow: 0 2px 8px rgba(246, 133, 27, 0.3);
+    }
+
+    .token-balance-refresh:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 4px 12px rgba(246, 133, 27, 0.4);
+        background: linear-gradient(45deg, #ffa726, #f6851b);
+    }
+
+    .token-balance-refresh:active {
+        transform: translateY(0);
+    }
+
+    @keyframes pulse {
+        0%, 100% { opacity: 0.8; }
+        50% { opacity: 1; }
+    }
+
+    /* Mobile responsive */
+    @media (max-width: 768px) {
+        .token-balance-container {
+            top: 10px;
+            left: 10px;
+            padding: 12px 16px;
+            min-width: 160px;
+        }
+
+        .token-balance-amount {
+            font-size: 18px;
+        }
+
+        .token-balance-title {
+            font-size: 12px;
+        }
+    }
 </style>
 </head>
 
 <body class="sl-game sl-game--eng">
 
     <img class="sl-game-logo" src="8a3e73bf364519a0c1500790dfe30126.static.png" alt="slotscity">
+
+    <!-- Token Balance Display -->
+    <div id="tokenBalanceContainer" class="token-balance-container" style="display: none;">
+        <div class="token-balance-header">
+            <div class="token-balance-icon">💰</div>
+            <div class="token-balance-title">Token Balance</div>
+        </div>
+        <div id="tokenBalanceAmount" class="token-balance-amount">--</div>
+        <div id="tokenBalanceStatus" class="token-balance-loading">Loading...</div>
+        <button id="tokenBalanceRefresh" class="token-balance-refresh" onclick="refreshTokenBalance()">
+            Refresh Balance
+        </button>
+    </div>
 
     <!-- Hidden wallet status elements -->
     <div style="display: none;">
@@ -87,7 +233,7 @@
                 <span class="textCloudInner"><b class="textCloudInner__first">Reveal your <br> bonus!</b></span>
             </div>
 
-            <button id="playButton" class="sl-game-button sl-game__playButton" onclick="handlePlayButtonClick()">
+            <button id="playButton" class="sl-game-button sl-game__playButton">
             <i class="splash"></i>
             <span id="playButtonLabel" class="sl-game-button__label">Play</span>
             <img src="900b64ebcfff1253a99d05eaf4041504.static.png">
@@ -107,7 +253,7 @@
                 <canvas id="myCanvas" class="gameFieldImg"></canvas>
 
 
-                <button id="openButton" class="sl-game-button sl-game__openButton disabled" onclick="checkWalletAndOpenUp()" disabled="">
+                <button id="openButton" class="sl-game-button sl-game__openButton disabled" disabled="">
                 <i class="splash"></i>
                 <img src="b4df4ed232655d0b172bdf333d135668.static.png">
                 <div class="sl-game-button__label">Open up</div>
@@ -512,56 +658,7 @@ function updatePlayButtonState() {
     }
 }
 
-// Check wallet connection before opening up and transfer tokens
-// This function is called when the user clicks the "Open up" button
-async function checkWalletAndOpenUp() {
-    // First check if wallet is connected and on the right network
-    if (!isWalletConnected) {
-        alert('Please connect your MetaMask wallet first');
-        return;
-    }
 
-    if (!isCorrectNetwork) {
-        alert('Please switch to Sepolia testnet');
-        switchToSepoliaNetwork();
-        return;
-    }
-
-    // If we get here, wallet is connected and on the right network, so transfer tokens
-    try {
-        // Show a loading state or message
-        const openButton = document.getElementById('openButton');
-        const originalText = openButton.querySelector('.sl-game-button__label').textContent;
-        openButton.querySelector('.sl-game-button__label').textContent = 'Transferring 100 tokens...';
-        openButton.disabled = true;
-
-        console.log('Transferring 100 tokens before running autoScratch');
-
-        // Get current attempt number from the game state
-        const attemptNumber = currentAttempt || 1;
-        console.log(`Attempt #${attemptNumber}: Transferring 100 tokens`);
-
-        // Transfer or burn 100 tokens
-        const success = await transferTokens();
-
-        // Reset button text
-        openButton.querySelector('.sl-game-button__label').textContent = originalText;
-
-        if (success) {
-            console.log(`Attempt #${attemptNumber}: Token transfer successful, running autoScratch`);
-            // If transfer successful, run the autoScratch function
-            autoScratch();
-        } else {
-            openButton.disabled = false;
-            console.error(`Attempt #${attemptNumber}: Token transfer failed`);
-            alert('Token transfer failed. Please try again.');
-        }
-    } catch (error) {
-        console.error('Error in checkWalletAndOpenUp:', error);
-        document.getElementById('openButton').disabled = false;
-        alert('An error occurred. Please try again.');
-    }
-}
 </script>
 
 </body></html>

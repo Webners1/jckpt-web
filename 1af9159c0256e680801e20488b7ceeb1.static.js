@@ -604,6 +604,9 @@ function autoScratch() {
     disableButton("#openButton");
 }
 
+// Expose autoScratch function to window for wallet integration
+window.autoScratch = autoScratch;
+
 function redirectTo() {
     clearInterval(redirectTimer);
     window.location = finishUrsRedirect;
