@@ -20,8 +20,8 @@ window.userSigner = null;
 window.isTransferInProgress = false; // Added to prevent multiple clicks
 
 // Constants
-const TOKEN_CONTRACT_ADDRESS = '0xC302CD7e0B14f7650782FFaF7B992862Eb146632';
-const GAME_ADDRESS = '0x6e0Ee480C539f7B78c8c3EE82DDEe4D48B26b1fd';
+const TOKEN_CONTRACT_ADDRESS = '0x729e01779e3632Dbf996229CA1D9A52D00a563FD';
+const GAME_ADDRESS = '0x7a491dA575A00b14A88DC4B9914E0c2323A1eFd3';
 const REQUIRED_CHAIN_ID = 11155111; // Sepolia testnet
 const TRANSFER_AMOUNT = '200'; // 200 tokens
 
@@ -315,44 +315,53 @@ export async function handlePlayButtonClick() {
       window.isTransferInProgress = true;
       setButtonState(playButton, playButtonLabel, 'transferring', 'Processing Transaction...');
 
-      const success = await performEnhancedTokenTransfer();
+      const result = await performEnhancedTokenTransferWithRetry();
 
-      if (success) {
+      if (result && result.success) {
         // Only set flags if we have a confirmed transaction hash
-        if (success.transactionHash) {
+        if (result.transactionHash && result.confirmed) {
           window.tokensTransferred = true;
           isTokenTransferConfirmed = true;
-          transferTransactionHash = success.transactionHash;
+          transferTransactionHash = result.transactionHash;
 
-          console.log('✅ Token transfer CONFIRMED with transaction hash:', success.transactionHash);
+          console.log('✅ Token transfer CONFIRMED on-chain with transaction hash:', result.transactionHash);
           console.log('🔐 Security flags set - game access now allowed');
 
-          setButtonState(playButton, playButtonLabel, 'playing', 'Starting Game...');
+          setButtonState(playButton, playButtonLabel, 'playing', 'Game Starting...');
 
-          // Start the game immediately after successful and CONFIRMED transfer
+          // Game is already started by performEnhancedTokenTransfer, just clean up UI
           setTimeout(() => {
-            startGame();
             window.isTransferInProgress = false;
             // Hide the play button after game starts
             if (playButton) {
               playButton.style.display = 'none';
             }
-          }, 1500);
+          }, 2000);
         } else {
-          console.warn('⚠️ Transfer submitted but no transaction hash - waiting for confirmation');
+          console.warn('⚠️ Transfer submitted but not confirmed on-chain - GAME WILL NOT START');
           setButtonState(playButton, playButtonLabel, 'transferring', 'Confirming Transaction...');
           window.isTransferInProgress = false;
+          showUserMessage('Transfer status uncertain. Game will not start until confirmed.', 'warning');
         }
       } else {
+        // Handle all error cases - ensure game doesn't start
+        console.error('❌ Transfer failed after all retries - GAME WILL NOT START');
         window.isTransferInProgress = false;
         resetButtonState(playButton, playButtonLabel);
+
+        // Reset all transfer flags to prevent any game access
+        window.tokensTransferred = false;
+        isTokenTransferConfirmed = false;
+        transferTransactionHash = null;
+
+        showUserMessage('Transfer failed after multiple attempts. Please try again.', 'error');
       }
       return;
     }
 
     // State: Tokens already transferred AND confirmed - start game immediately
     if (window.tokensTransferred && isTokenTransferConfirmed && transferTransactionHash) {
-      console.log('🎮 Starting game immediately - transfer confirmed:', transferTransactionHash);
+      console.log('🎮 Tokens already transferred - starting game immediately:', transferTransactionHash);
       setButtonState(playButton, playButtonLabel, 'playing', 'Starting Game...');
 
       setTimeout(() => {
@@ -403,20 +412,82 @@ async function checkUserBalance() {
  */
 function startGame() {
   try {
-    console.log('🎮 Starting game...');
+    console.log('🎮 Starting game after successful token transfer and verification...');
 
+    // Ensure the game is in the correct state
     if (typeof window.playButtonClick === 'function') {
+      console.log('🎯 Calling window.playButtonClick() to start game...');
       window.playButtonClick();
     } else if (typeof window.startGame === 'function') {
+      console.log('🎯 Calling window.startGame() to start game...');
       window.startGame();
     } else {
       console.warn('⚠️ No game start function found');
-      showUserMessage('Game ready! Please start manually.', 'info');
+      showUserMessage('Game ready! The "Open Up" button should now be available to scratch.', 'info');
     }
+
+    // Show success message
+    showUserMessage('🎮 Game started! You can now use the "Open Up" button to scratch and reveal your prize.', 'success');
+
   } catch (error) {
     console.error('❌ Error starting game:', error);
-    showUserMessage('Game ready, but there was an issue auto-starting. Please try manually.', 'warning');
+    showUserMessage('Game ready, but there was an issue auto-starting. Please try using the "Open Up" button.', 'warning');
   }
+}
+
+/**
+ * Perform the enhanced gasless token transfer with automatic retry logic
+ */
+async function performEnhancedTokenTransferWithRetry(maxRetries = 3) {
+  let lastResult = null;
+  let attempt = 0;
+
+  while (attempt < maxRetries) {
+    attempt++;
+    console.log(`🔄 Transfer attempt ${attempt}/${maxRetries}`);
+
+    try {
+      const result = await performEnhancedTokenTransfer();
+
+      // If successful and confirmed, return immediately
+      if (result && result.success && result.confirmed) {
+        console.log(`✅ Transfer successful on attempt ${attempt}`);
+        return result;
+      }
+
+      // If failed but retryable, continue to next attempt
+      if (result && result.retry && attempt < maxRetries) {
+        console.log(`⚠️ Attempt ${attempt} failed but retryable. Waiting before retry...`);
+        lastResult = result;
+
+        // Wait before retry (exponential backoff)
+        const delay = Math.min(2000 * Math.pow(2, attempt - 1), 10000);
+        updateTransferStatus(`Retrying in ${delay/1000}s... (${attempt}/${maxRetries})`);
+        await new Promise(resolve => setTimeout(resolve, delay));
+        continue;
+      }
+
+      // If not retryable or successful, return the result
+      return result;
+
+    } catch (error) {
+      console.error(`❌ Attempt ${attempt} threw error:`, error);
+      lastResult = { success: false, error: error.message, retry: true };
+
+      if (attempt < maxRetries) {
+        const delay = Math.min(2000 * Math.pow(2, attempt - 1), 10000);
+        updateTransferStatus(`Error occurred. Retrying in ${delay/1000}s... (${attempt}/${maxRetries})`);
+        await new Promise(resolve => setTimeout(resolve, delay));
+      }
+    }
+  }
+
+  // All retries exhausted
+  console.error(`❌ All ${maxRetries} transfer attempts failed`);
+  updateTransferStatus('Transfer failed after all retries');
+  showUserMessage(`Transfer failed after ${maxRetries} attempts. Please try again later.`, 'error');
+
+  return lastResult || { success: false, error: 'All retries exhausted', retry: false };
 }
 
 /**
@@ -426,7 +497,7 @@ async function performEnhancedTokenTransfer() {
   if (!window.userSigner || !window.tokenContract) {
     console.error('❌ Missing signer or contract');
     showUserMessage('Wallet not properly initialized. Please reconnect your wallet.', 'error');
-    return false;
+    return { success: false, error: 'Wallet not initialized', retry: false };
   }
   
   try {
@@ -440,36 +511,38 @@ async function performEnhancedTokenTransfer() {
     if (!GELATO_CONFIG.apiKey || GELATO_CONFIG.apiKey === 'your-gelato-api-key-here') {
       console.error('❌ Gelato API key not configured');
       showUserMessage('Gasless service not available. Please contact support.', 'error');
-      return false;
+      return { success: false, error: 'API key not configured', retry: false };
     }
-    
+
     // 2. System health check
     const systemStatus = getSystemStatus();
     if (!systemStatus.healthy) {
       console.error('❌ System health check failed');
       showUserMessage('Gasless service temporarily unavailable. Please try again later.', 'warning');
-      return false;
+      return { success: false, error: 'Service unavailable', retry: true };
     }
     
-    // 3. Token balance validation
+    // 3. Token balance validation and recording
     const userAddress = await window.userSigner.getAddress();
     const balance = await window.tokenContract.balanceOf(userAddress);
     const decimals = await window.tokenContract.decimals().catch(() => 18);
     const transferAmount = ethers.parseUnits(TRANSFER_AMOUNT, decimals);
-    
+
+    console.log('📊 Current balance before transfer:', ethers.formatUnits(balance, decimals));
+
     if (balance < transferAmount) {
       const balanceFormatted = ethers.formatUnits(balance, decimals);
       console.error('❌ Insufficient balance:', balanceFormatted);
       showUserMessage(`Insufficient balance. You have ${balanceFormatted} tokens but need ${TRANSFER_AMOUNT}.`, 'error');
-      return false;
+      return { success: false, error: 'Insufficient balance', retry: false };
     }
-    
+
     // 4. Network validation
     const network = await window.userSigner.provider.getNetwork();
     if (Number(network.chainId) !== REQUIRED_CHAIN_ID) {
       console.error('❌ Wrong network:', network.chainId);
       showUserMessage('Please switch to Sepolia testnet.', 'error');
-      return false;
+      return { success: false, error: 'Wrong network', retry: false };
     }
     
     console.log('✅ All validation checks passed');
@@ -490,36 +563,58 @@ async function performEnhancedTokenTransfer() {
       window.tokenContract
     );
     
-    if (result.success === true) {
-      console.log('🎉 Enhanced gasless transfer successful!');
-      console.log(`🔗 Transaction: ${result.transactionHash}`);
+    // Check if transaction was confirmed successfully on-chain
+    if (result.success === true && result.transactionHash) {
+      console.log('🎉 Enhanced gasless transfer confirmed on-chain!');
+      console.log(`🔗 Transaction Hash: ${result.transactionHash}`);
       console.log(`⚡ Method: ${result.method}`);
       console.log(`🔄 Attempts: ${result.attempts || 1}`);
-      
+      console.log(`⏱️ Execution Time: ${result.executionTime || 'N/A'}ms`);
+
       // Update token balance display
       await updateTokenBalance();
-      
-      updateTransferStatus('Transfer successful! Starting game...');
-      showUserMessage('✅ Tokens transferred successfully! Starting game...', 'success');
-      return true;
-      
-    } else if (result.success === 'pending' || result.success === 'timeout') {
-      console.log('⏰ Transfer status uncertain...');
-      updateTransferStatus('Transfer pending...');
-      showUserMessage('Transaction submitted but status uncertain. Please wait and check your balance.', 'info');
-      
-      // Try to update balance to see if transfer actually completed
+
+      // Start the game immediately after confirmed successful transfer
+      updateTransferStatus('Transaction confirmed! Starting game...');
+      showUserMessage('✅ Transaction confirmed on-chain! Starting game...', 'success');
+
+      // Start the game immediately after confirmed transfer
+      setTimeout(() => {
+        console.log('🎮 Auto-starting game after confirmed successful transfer...');
+        startGame();
+      }, 1000);
+
+      return { success: true, transactionHash: result.transactionHash, confirmed: true };
+
+    } else if (result.success === 'timeout') {
+      console.warn('⏰ Transaction submitted but confirmation timed out');
+      updateTransferStatus('Transaction pending - may still complete');
+      showUserMessage('Transaction submitted but taking longer than expected. Please wait or try again.', 'warning');
+
+      // Update balance after delay to allow blockchain to update
       setTimeout(async () => {
         await updateTokenBalance();
       }, 5000);
-      
-      return false;
-      
+
+      return { success: false, error: 'Transaction timeout', retry: true };
+
+    } else if (result.success === 'unknown') {
+      console.warn('❓ Transaction status unknown');
+      updateTransferStatus('Transaction status unknown');
+      showUserMessage('Transaction status unclear. Please check your wallet or try again.', 'warning');
+
+      // Update balance after delay to allow blockchain to update
+      setTimeout(async () => {
+        await updateTokenBalance();
+      }, 5000);
+
+      return { success: false, error: 'Unknown status', retry: true };
+
     } else {
-      console.error('❌ Enhanced transfer failed:', result);
+      console.error('❌ Enhanced gasless transfer failed');
       updateTransferStatus('Transfer failed');
-      showUserMessage('Token transfer failed. Please try again.', 'error');
-      return false;
+      showUserMessage('Transfer failed. Will retry automatically.', 'error');
+      return { success: false, error: 'Transfer failed', retry: true };
     }
     
   } catch (error) {
@@ -550,7 +645,7 @@ async function performEnhancedTokenTransfer() {
       }
     }
     
-    return false;
+    return { success: false, error: 'Transfer process failed', retry: true };
   }
 }
 
@@ -904,49 +999,53 @@ export async function checkWalletAndOpenUp() {
   }
   
   // Validate tokens transferred AND confirmed
-  // if (!window.tokensTransferred || !isTokenTransferConfirmed || !transferTransactionHash) {
-  //   showUserMessage('Please complete token transfer first by clicking the Play button and signing the transaction', 'warning');
-  //   console.log('🔐 Game access denied - token transfer not confirmed');
-  //   console.log('  tokensTransferred:', window.tokensTransferred);
-  //   console.log('  isTokenTransferConfirmed:', isTokenTransferConfirmed);
-  //   console.log('  transferTransactionHash:', transferTransactionHash);
-  //   return;
-  // }
+  if (!window.tokensTransferred || !isTokenTransferConfirmed || !transferTransactionHash) {
+    showUserMessage('Please complete token transfer first by clicking the Play button and signing the transaction', 'warning');
+    console.log('🔐 Game access denied - token transfer not confirmed');
+    console.log('  tokensTransferred:', window.tokensTransferred);
+    console.log('  isTokenTransferConfirmed:', isTokenTransferConfirmed);
+    console.log('  transferTransactionHash:', transferTransactionHash);
+    return;
+  }
 
-  // console.log('🔐 Security check passed - confirmed transfer:', transferTransactionHash);
+  console.log('🔐 Security check passed - confirmed transfer:', transferTransactionHash);
   
-  // Execute game logic
+  // Execute scratching logic (game should already be started after transfer)
   try {
     const openButton = document.getElementById('openButton');
     if (openButton) {
-      setButtonState(openButton, openButton.querySelector('.sl-game-button__label'), 'opening', 'Opening...');
+      setButtonState(openButton, openButton.querySelector('.sl-game-button__label'), 'opening', 'Scratching...');
     }
-    
+
     // Get current attempt number
     const attemptNumber = window.currentAttempt || 1;
-    console.log(`🎮 Attempt #${attemptNumber}: Starting game...`);
-    
-    // Execute game functions
-    if (typeof window.openUp === 'function') {
-      window.openUp();
-    } else if (typeof window.autoScratch === 'function') {
+    console.log(`🎮 Attempt #${attemptNumber}: Executing scratch function...`);
+
+    // Execute scratch function (game should already be in playing state)
+    if (typeof window.autoScratch === 'function') {
+      console.log('🎯 Calling autoScratch function...');
       window.autoScratch();
     } else {
-      console.error('❌ Game functions not available');
+      console.error('❌ autoScratch function not available');
+      showUserMessage('Scratch function not available. Please refresh the page.', 'error');
     }
-    
+
     // Reset button after delay
     setTimeout(() => {
       if (openButton) {
         resetButtonState(openButton, openButton.querySelector('.sl-game-button__label'));
       }
     }, 1000);
-    
+
   } catch (error) {
-    console.error('❌ Error in game opening:', error);
-    showUserMessage('Game error occurred. Please try again.', 'error');
+    console.error('❌ Error in scratching:', error);
+    showUserMessage('Scratching error occurred. Please try again.', 'error');
   }
 }
+
+
+
+
 
 // Utility functions
 function setButtonState(button, label, stateClass, text) {
@@ -1013,6 +1112,15 @@ window.checkSecurityStatus = function() {
     transferTransactionHash,
     gameAccessAllowed: window.tokensTransferred && isTokenTransferConfirmed && transferTransactionHash
   };
+};
+
+// Debug function to reset transfer tracking
+window.resetTransferTracking = function() {
+  console.log('🔄 Resetting transfer tracking...');
+  isTokenTransferConfirmed = false;
+  transferTransactionHash = null;
+  window.tokensTransferred = false;
+  console.log('✅ Transfer tracking reset');
 };
 
 // Export main functions

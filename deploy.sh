@@ -90,6 +90,35 @@ cd $APP_DIR/repo
 print_section "Installing project dependencies"
 npm install --legacy-peer-deps
 
+# Fix Rollup native binary issue for Linux
+print_section "Fixing Rollup native binary dependencies"
+echo "Installing Rollup native binaries for Linux..."
+
+# Try multiple approaches to fix Rollup native binary issue
+echo "Approach 1: Installing specific Rollup native binary..."
+npm install @rollup/rollup-linux-x64-gnu --save-dev --legacy-peer-deps || echo "Failed to install @rollup/rollup-linux-x64-gnu"
+
+echo "Approach 2: Installing all Rollup native binaries..."
+npm install @rollup/rollup-linux-x64-musl --save-dev --legacy-peer-deps || echo "Failed to install @rollup/rollup-linux-x64-musl"
+
+echo "Approach 3: Rebuilding native dependencies..."
+npm rebuild --legacy-peer-deps || echo "Failed to rebuild dependencies"
+
+echo "Approach 4: Installing Rollup globally and locally..."
+npm install -g rollup || echo "Failed to install rollup globally"
+npm install rollup --save-dev --legacy-peer-deps || echo "Failed to install rollup locally"
+
+# Clear npm cache and reinstall if needed
+echo "Clearing npm cache and ensuring all dependencies are properly installed..."
+npm cache clean --force
+npm install --legacy-peer-deps
+
+# Final attempt: Force install with specific architecture
+echo "Final attempt: Force installing with specific architecture..."
+npm config set target_arch x64
+npm config set target_platform linux
+npm install --legacy-peer-deps
+
 # Check if dev script exists in package.json and determine the likely port
 if grep -q "\"dev\"" package.json; then
     echo -e "${GREEN}Found dev script in package.json${NC}"
@@ -98,7 +127,7 @@ if grep -q "\"dev\"" package.json; then
     # Try to determine the dev server port
     if grep -q "vite" package.json; then
         echo -e "${GREEN}Detected Vite.js project - likely using port 5173${NC}"
-        DEV_PORT=8001
+        DEV_PORT=3001
     elif grep -q "next" package.json; then
         echo -e "${GREEN}Detected Next.js project - likely using port 3000${NC}"
         DEV_PORT=3000
